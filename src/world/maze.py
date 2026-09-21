@@ -1,11 +1,5 @@
 import pygame
-
-TILE_SIZE = 60
-
-COLOR_PARED = (60, 60, 80)
-COLOR_BORDE_PARED = (90, 105, 70)
-COLOR_CAMINO = (75, 90, 60)
-COLOR_BORDE_CAMINO = (65, 78, 50)
+from src.constants import TILE_SIZE, COLOR_PARED, COLOR_BORDE_PARED, COLOR_CAMINO, COLOR_BORDE_CAMINO
 
 
 class Maze:
@@ -55,12 +49,12 @@ class Maze:
                         return True
         return False
 
-    def dibujar(self, pantalla, camera_x, camera_y):
+    def dibujar(self, pantalla, camera):
         for y, fila in enumerate(self.mapa):
             for x, celda in enumerate(fila):
                 rect = pygame.Rect(
-                    x * self.tile_size - camera_x,
-                    y * self.tile_size - camera_y,
+                    x * self.tile_size - camera.x,
+                    y * self.tile_size - camera.y,
                     self.tile_size,
                     self.tile_size,
                 )
