@@ -11,6 +11,7 @@ from src.constants import (
     COLOR_OBJETIVO,
     COLOR_TEXTO,
     COLOR_TITULO,
+    SEMILLAS,
 )
 from src.screens.menu import MenuScreen
 from src.screens.game_screen import GameScreen
@@ -32,6 +33,7 @@ class Juego:
         self.estado = EstadoJuego.MENU
         self.opcion_menu = 0
         self.opciones_menu = ["Jugar", "Salir"]
+        self.nivel_actual = 0
         self.objetivo = pygame.Rect(0, 0, 40, 40)
 
         self.menu_screen = MenuScreen()
@@ -40,11 +42,13 @@ class Juego:
         self.reiniciar_partida()
 
     def reiniciar_partida(self):
+        self.nivel_actual = 0
         self.objetivo = pygame.Rect(0, 0, 40, 40)
-        self.cargar_nivel()
+        self.cargar_nivel(0)
 
-    def cargar_nivel(self):
-        self.game_screen.cargar_nivel(self)
+    def cargar_nivel(self, nivel):
+        self.nivel_actual = nivel
+        self.game_screen.cargar_nivel(nivel, self)
 
     def manejar_eventos(self):
         for event in pygame.event.get():

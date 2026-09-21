@@ -12,6 +12,7 @@ from src.constants import (
     ANCHO_PANTALLA,
     TILE_SIZE,
     VELOCIDAD_JUGADOR,
+    SEMILLAS,
 )
 from src.world.maze import Maze
 from src.world.camera import Camera
@@ -25,8 +26,8 @@ class GameScreen:
         self.player = None
         self.objetivo = None
 
-    def cargar_nivel(self, juego):
-        self.maze = Maze(0)
+    def cargar_nivel(self, nivel, juego):
+        self.maze = Maze(nivel)
         self.camera = Camera(self.maze.ancho, self.maze.alto, ANCHO_PANTALLA, 600)
         mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
         posiciones = self.maze.obtener_posiciones_libres()

@@ -1,4 +1,7 @@
 import pygame
+from src.world.seeds import (
+    SEMILLAS,
+)
 
 ANCHO_PANTALLA, ALTO_PANTALLA = 800, 600
 ANCHO_MUNDO, ALTO_MUNDO = 1600, 1200

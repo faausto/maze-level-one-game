@@ -1,26 +1,15 @@
 import pygame
+import random
 from src.constants import TILE_SIZE, COLOR_PARED, COLOR_BORDE_PARED, COLOR_CAMINO, COLOR_BORDE_CAMINO
+from src.world.seeds import SEMILLAS
 
 
 class Maze:
     def __init__(self, nivel):
         self.nivel = nivel
         self.tile_size = TILE_SIZE
-        self.mapa = [
-            "11111111111111111111",
-            "10000000000000000001",
-            "10111101111101111101",
-            "10100000000000001001",
-            "10101111111111101001",
-            "10000000000000000001",
-            "11110111101111101111",
-            "10000100000010000001",
-            "10111011101110111101",
-            "10000000000000000001",
-            "10111101111101111101",
-            "10000000000000000001",
-            "11111111111111111111",
-        ]
+        semilla_idx = random.randint(0, len(SEMILLAS[nivel]) - 1)
+        self.mapa = SEMILLAS[nivel][semilla_idx]
         self.ancho = len(self.mapa[0]) * self.tile_size
         self.alto = len(self.mapa) * self.tile_size
 
