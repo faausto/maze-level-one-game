@@ -95,3 +95,37 @@ SEMILLAS_NIVEL_2 = [
 ]
 
 SEMILLAS = [SEMILLAS_NIVEL_1, SEMILLAS_NIVEL_2]
+
+FRUTAS_NIVEL_1 = [
+    {"tipo": "manzana", "color": (255, 50, 50), "puntos": 10, "x": 150, "y": 150},
+    {"tipo": "banana", "color": (255, 220, 50), "puntos": 20, "x": 750, "y": 350},
+    {"tipo": "uva", "color": (160, 50, 255), "puntos": 30, "x": 1100, "y": 700},
+]
+
+FRUTAS_NIVEL_2 = [
+    {"tipo": "manzana", "color": (255, 50, 50), "puntos": 10, "x": 200, "y": 500},
+    {"tipo": "banana", "color": (255, 220, 50), "puntos": 20, "x": 1100, "y": 200},
+    {"tipo": "uva", "color": (160, 50, 255), "puntos": 30, "x": 1100, "y": 700},
+]
+
+FRUTAS_POR_NIVEL = [FRUTAS_NIVEL_1, FRUTAS_NIVEL_2]
+
+MONSTRUOS_NIVEL_1 = [
+    {"x": 400, "y": 300, "ancho": 40, "alto": 40, "puntos": [(400, 300), (400, 500)], "velocidad": 120},
+]
+
+MONSTRUOS_NIVEL_2 = [
+    {"x": 300, "y": 200, "ancho": 40, "alto": 40, "puntos": [(300, 200), (300, 500), (600, 500)], "velocidad": 140, "rango_deteccion": 150},
+    {"x": 1000, "y": 700, "ancho": 40, "alto": 40, "puntos": [(1000, 700), (1000, 1000), (1100, 1000)], "velocidad": 140, "rango_deteccion": 150},
+]
+
+MONSTRUOS_POR_NIVEL = [MONSTRUOS_NIVEL_1, MONSTRUOS_NIVEL_2]
+
+SALIDA_NIVEL_1 = {"x": 1100, "y": 700, "ancho": 60, "alto": 60}
+SALIDA_NIVEL_2 = {"x": 100, "y": 100, "ancho": 60, "alto": 60}
+SALIDAS = [SALIDA_NIVEL_1, SALIDA_NIVEL_2]
+
+NIVELES = [
+    {"tiempo": 120},
+    {"tiempo": 100},
+]

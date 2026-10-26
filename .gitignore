@@ -13,4 +13,3 @@ database/*.db
 # Archivos del editor
 .vscode/
 .idea/
-.kilo/

@@ -1,4 +1,3 @@
-
 def main():
     from src.game import Juego
     juego = Juego()

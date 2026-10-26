@@ -17,32 +17,55 @@ El jugador controla a un personaje dentro de un laberinto de mayor tamaño que l
 ## Funcionalidades
 
 **FASE 1**
-- [ ] Control del personaje en las cuatro direcciones.
-- [ ] Laberinto más grande que la pantalla, con cámara de seguimiento.
+- [x] Control del personaje en las cuatro direcciones.
+- [x] Laberinto más grande que la pantalla, con cámara de seguimiento.
 
 **FASE 2**
-- [ ] Menú principal con opciones de Jugar y Salir.
-- [ ] Agregar al menú principal opcion de Instrucciones.
-- [ ] Agregar al menú principal opcion de Tabla de puntos (ranking con el Top 10).
+- [x] Menú principal con opciones de Jugar y Salir.
+- [x] Agregar al menú principal opcion de Instrucciones.
+- [x] Agregar al menú principal opcion de Tabla de puntos (ranking con el Top 10).
 
 **FASE 3**
-- [ ] Al menos 3 semillas de laberinto prediseñadas para elegir al azar.
-- [ ] Creacion del HUD para puntaje, vidas, tiempo y nivel de laberinto.
-- [ ] Crear salida del laberinto para finalizar nivel, con pantalla final de victoria/game over.
-- [ ] Agregar tiempo limite para escapar del laberinto.
-- [ ] Condición de Victoria únicamente al completar todos los niveles.
+- [x] Al menos 3 semillas de laberinto prediseñadas para elegir al azar.
+- [x] Creacion del HUD para puntaje, vidas, tiempo y nivel de laberinto.
+- [x] Crear salida del laberinto para finalizar nivel, con pantalla final de victoria/game over.
+- [x] Agregar tiempo limite para escapar del laberinto.
+- [x] Condición de Victoria únicamente al completar todos los niveles.
 
 **FASE 4**
-- [ ] Frutas coleccionables de distintos tipos, con distinto puntaje cada una.
-- [ ] Bonus temporal de inmunidad al recolectar frutas.
+- [x] Frutas coleccionables de distintos tipos, con distinto puntaje cada una.
+- [x] Bonus temporal de inmunidad al recolectar frutas.
 
 **FASE 5**
-- [ ] Monstruos con patrones de movimiento predefinidos (y área de persecución desde el segundo nivel).
-- [ ] Sistema de 5 vidas con período de invulnerabilidad tras cada impacto.
+- [x] Monstruos con patrones de movimiento predefinidos (y área de persecución desde el segundo nivel).
+- [x] Sistema de 5 vidas con período de invulnerabilidad tras cada impacto.
 
 **FASE 6**
-- [ ] Bonus de puntos por Victoria (vidas restantes y tiempo sobrante).
-- [ ] Registro de nombre y puntaje en SQLite, solo en caso de Victoria.
+- [x] Bonus de puntos por Victoria (vidas restantes y tiempo sobrante).
+- [x] Registro de nombre y puntaje en SQLite, solo en caso de Victoria.
+
+**FASE 7 – Preparación multimedia**
+- [ ] Cargador de imágenes y sonidos
+
+**FASE 8 – Decorado y HUD**
+- [ ] Paredes y suelo con imágenes
+- [ ] Frutas con su imagen propia
+- [ ] Salida con efecto visual
+- [ ] Iconos en el HUD (vidas, puntos, tiempo)
+
+**FASE 9 – Animaciones**
+- [ ] Personaje camina en 8 direcciones
+- [ ] Enemigos caminan en 4 direcciones
+
+**FASE 10 – Sonido**
+- [ ] Música de fondo en partida
+- [ ] Música de victoria
+- [ ] Música de game over
+- [ ] Sonido al caminar
+- [ ] Sonido al comer fruta
+- [ ] Sonido al recibir daño
+- [ ] Sonido al activar inmunidad
+- [ ] Sonidos en menús (navegar, confirmar)
 
 **ANEXOS**
 - [ ] Funcionamiento 100% local, sin conexión a Internet.
