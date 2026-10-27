@@ -54,7 +54,7 @@ El jugador controla a un personaje dentro de un laberinto de mayor tamaño que l
 - [ ] Iconos en el HUD (vidas, puntos, tiempo)
 
 **FASE 9 – Animaciones**
-- [ ] Personaje camina en 8 direcciones
+- [x] Personaje camina en 8 direcciones
 - [ ] Enemigos caminan en 4 direcciones
 
 **FASE 10 – Sonido**

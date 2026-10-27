@@ -117,6 +117,7 @@ class GameScreen:
 
         mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
         self.player.mover(dx, dy, self.maze, mundo_rect)
+        self.player.update(dt)
 
         for fruta in self.frutas:
             if fruta.esta_activa() and self.player.get_rect().colliderect(fruta.get_rect()):
@@ -175,8 +176,14 @@ class GameScreen:
 
         if not self.invulnerable or int(pygame.time.get_ticks() / 100) % 2 == 0:
             jugador_pantalla = self.camera.aplicar(self.player.get_rect())
-            color_jugador_actual = (0, 255, 0) if self.inmune else COLOR_JUGADOR
-            pygame.draw.rect(pantalla, color_jugador_actual, jugador_pantalla)
+            sprite = self.player.get_current_sprite()
+            if sprite:
+                offset_x, offset_y = self.player.get_draw_offset()
+                draw_pos = (jugador_pantalla.x - offset_x, jugador_pantalla.y - offset_y)
+                pantalla.blit(sprite, draw_pos)
+            else:
+                color_jugador_actual = (0, 255, 0) if self.inmune else COLOR_JUGADOR
+                pygame.draw.rect(pantalla, color_jugador_actual, jugador_pantalla)
 
         for monstruo in self.monstruos:
             monstruo_pantalla = self.camera.aplicar(monstruo.get_rect())
