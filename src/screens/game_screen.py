@@ -56,25 +56,63 @@ class GameScreen:
         juego.objetivo = pygame.Rect(objetivo_pos[0] - 20, objetivo_pos[1] - 20, 40, 40)
 
         self.frutas = []
-        for f in FRUTAS_POR_NIVEL[nivel]:
-            self.frutas.append(Fruit(f["x"], f["y"], tipo=f["tipo"], color=f["color"], puntos=f["puntos"]))
+        fruta_data = FRUTAS_POR_NIVEL[nivel]
+        posiciones_disponibles = posiciones[2:] if len(posiciones) > 2 else posiciones[:]
+        random.shuffle(posiciones_disponibles)
+        for i, f in enumerate(fruta_data):
+            if i < len(posiciones_disponibles):
+                pos = posiciones_disponibles[i]
+                self.frutas.append(Fruit(pos[0] - 12, pos[1] - 12, tipo=f["tipo"], color=f["color"], puntos=f["puntos"]))
+            else:
+                self.frutas.append(Fruit(f["x"], f["y"], tipo=f["tipo"], color=f["color"], puntos=f["puntos"]))
 
         self.monstruos = []
-        for m in MONSTRUOS_POR_NIVEL[nivel]:
-            self.monstruos.append(
-                Monster(
-                    m["x"],
-                    m["y"],
-                    m["ancho"],
-                    m["alto"],
-                    m["puntos"],
-                    m["velocidad"],
-                    m.get("rango_deteccion", 0),
+        posiciones_libres = self.maze.obtener_posiciones_libres()
+        if len(posiciones_libres) > 6:
+            monster_positions = posiciones_libres[len(posiciones_libres) // 2:len(posiciones_libres) // 2 + 6]
+        else:
+            monster_positions = posiciones_libres[2:6] if len(posiciones_libres) > 2 else []
+        random.shuffle(monster_positions)
+        for idx, m in enumerate(MONSTRUOS_POR_NIVEL[nivel]):
+            if idx < len(monster_positions):
+                pos = monster_positions[idx]
+                self.monstruos.append(
+                    Monster(
+                        pos[0] - m["ancho"] // 2,
+                        pos[1] - m["alto"] // 2,
+                        m["ancho"],
+                        m["alto"],
+                        m["puntos"],
+                        m["velocidad"],
+                        m.get("rango_deteccion", 0),
+                    )
                 )
-            )
+            else:
+                self.monstruos.append(
+                    Monster(
+                        m["x"],
+                        m["y"],
+                        m["ancho"],
+                        m["alto"],
+                        m["puntos"],
+                        m["velocidad"],
+                        m.get("rango_deteccion", 0),
+                    )
+                )
+        for monster in self.monstruos:
+            monster.objetivo_wander = None
+            monster.origen_wander = (monster.rect.x, monster.rect.y)
+            monster.distancia_recorrida = 0
+            monster.max_distancia = random.randint(80, 160)
+            if self.maze:
+                monster._generar_objetivo_wander(self.maze)
 
         salida = SALIDAS[nivel]
         self.salida = pygame.Rect(salida["x"], salida["y"], salida["ancho"], salida["alto"])
+        self.exit_tile = None
+        if self.maze:
+            ts = self.maze.tile_size
+            self.exit_tile = (self.salida.centerx // ts, self.salida.centery // ts)
         self.tiempo_nivel = NIVELES[nivel]["tiempo"]
         self.frutas_recolectadas_ventana = []
         self.inmune = False
@@ -131,8 +169,9 @@ class GameScreen:
                     self.tiempo_inmunidad = 5
                     self.frutas_recolectadas_ventana = []
 
+        mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
         for monstruo in self.monstruos:
-            monstruo.update(dt, self.player.get_rect())
+            monstruo.update(dt, self.player.get_rect(), self.maze, mundo_rect)
 
         if not self.inmune and not self.invulnerable:
             for monstruo in self.monstruos:
@@ -164,15 +203,33 @@ class GameScreen:
         self.maze.dibujar(pantalla, self.camera)
 
         objetivo_pantalla = self.camera.aplicar(juego.objetivo)
-        pygame.draw.rect(pantalla, COLOR_OBJETIVO, objetivo_pantalla)
 
-        salida_pantalla = self.camera.aplicar(self.salida)
-        pygame.draw.rect(pantalla, COLOR_SALIDA, salida_pantalla)
+        hud_height = 80
+        self.maze.dibujar(pantalla, self.camera, offset_y=hud_height)
+
+        if hasattr(self, 'exit_tile') and self.exit_tile and self.maze:
+            ts = self.maze.tile_size
+            ex, ey = self.exit_tile
+            rect = pygame.Rect(ex * ts - self.camera.x, ey * ts - self.camera.y + hud_height, ts, ts)
+            pygame.draw.rect(pantalla, COLOR_PARED, rect)
+            pygame.draw.rect(pantalla, (40, 255, 150), rect)
+            pygame.draw.rect(pantalla, (0, 150, 70), rect, 2)
+        else:
+            salida_pantalla = self.camera.aplicar(self.salida)
+            pygame.draw.rect(pantalla, COLOR_SALIDA, salida_pantalla)
+            pygame.draw.rect(pantalla, (40, 255, 150), salida_pantalla, 3)
 
         for fruta in self.frutas:
             if fruta.esta_activa():
                 fruta_pantalla = self.camera.aplicar(fruta.get_rect())
-                pygame.draw.rect(pantalla, fruta.color, fruta_pantalla)
+                sprite = fruta.get_sprite()
+                if sprite:
+                    float_y = fruta.get_float_offset()
+                    sprite_scaled = pygame.transform.scale(sprite, (fruta_pantalla.width + 6, fruta_pantalla.height + 6))
+                    draw_pos = (fruta_pantalla.x - 3, fruta_pantalla.y - 3 + float_y)
+                    pantalla.blit(sprite_scaled, draw_pos)
+                else:
+                    pygame.draw.rect(pantalla, fruta.color, fruta_pantalla)
 
         if not self.invulnerable or int(pygame.time.get_ticks() / 100) % 2 == 0:
             jugador_pantalla = self.camera.aplicar(self.player.get_rect())
@@ -187,7 +244,13 @@ class GameScreen:
 
         for monstruo in self.monstruos:
             monstruo_pantalla = self.camera.aplicar(monstruo.get_rect())
-            pygame.draw.rect(pantalla, COLOR_MONSTRUO, monstruo_pantalla)
+            sprite = monstruo.get_current_sprite()
+            if sprite:
+                offset_x, offset_y = monstruo.get_draw_offset()
+                draw_pos = (monstruo_pantalla.x - offset_x, monstruo_pantalla.y - offset_y)
+                pantalla.blit(sprite, draw_pos)
+            else:
+                pygame.draw.rect(pantalla, COLOR_MONSTRUO, monstruo_pantalla)
 
         dibujar_hud(pantalla, juego.vidas, juego.puntaje, self.tiempo_nivel, juego.nivel_actual, self.inmune)
         pygame.display.flip()

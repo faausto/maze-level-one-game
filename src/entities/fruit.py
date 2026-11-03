@@ -1,13 +1,46 @@
 import pygame
+import os
+import random
 
 
 class Fruit:
+    _sprite_sheet = None
+    _frames = None
+    _frame_size = 32
+
     def __init__(self, x, y, ancho=25, alto=25, tipo="", color=(255, 140, 0), puntos=10):
         self.rect = pygame.Rect(x, y, ancho, alto)
         self.tipo = tipo
         self.color = color
         self.puntos = puntos
         self.activa = True
+        self.start_time = pygame.time.get_ticks()
+        self.float_offset = random.uniform(0, 6.28)
+        self.frame_index = random.randint(0, 23)
+
+        if Fruit._frames is None:
+            self._load_sprites()
+
+    @classmethod
+    def _load_sprites(cls):
+        try:
+            base_path = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'images', 'fruits', 'fruits.png')
+            sheet = pygame.image.load(base_path).convert_alpha()
+            cls._sprite_sheet = sheet
+            cls._frames = []
+            cols = 5
+            rows = 5
+            for row in range(rows):
+                for col in range(cols):
+                    if row == rows - 1 and col == cols - 1:
+                        continue
+                    x = col * cls._frame_size
+                    y = row * cls._frame_size
+                    frame = sheet.subsurface(pygame.Rect(x, y, cls._frame_size, cls._frame_size))
+                    cls._frames.append(frame)
+        except Exception as e:
+            print(f"Error al cargar sprites de frutas: {e}")
+            cls._frames = []
 
     def recolectar(self):
         self.activa = False
@@ -18,3 +51,12 @@ class Fruit:
 
     def get_rect(self):
         return self.rect
+
+    def get_sprite(self):
+        if Fruit._frames and 0 <= self.frame_index < len(Fruit._frames):
+            return Fruit._frames[self.frame_index]
+        return None
+
+    def get_float_offset(self):
+        t = (pygame.time.get_ticks() - self.start_time) / 1000.0
+        return int(3 * pygame.math.Vector2(1, 0).rotate(t * 240 + self.float_offset).y)

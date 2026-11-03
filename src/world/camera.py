@@ -12,9 +12,9 @@ class Camera:
 
     def update(self, jugador_rect):
         self.x = jugador_rect.centerx - self.ancho_pantalla // 2
-        self.y = jugador_rect.centery - self.alto_pantalla // 2
+        self.y = jugador_rect.centery - (self.alto_pantalla - 80) // 2
         self.x = max(0, min(self.x, self.ancho_mundo - self.ancho_pantalla))
-        self.y = max(0, min(self.y, self.alto_mundo - self.alto_pantalla))
+        self.y = max(0, min(self.y, self.alto_mundo - (self.alto_pantalla - 80)))
 
     def aplicar(self, rect):
-        return pygame.Rect(rect.x - self.x, rect.y - self.y, rect.width, rect.height)
+        return pygame.Rect(rect.x - self.x, rect.y - self.y + 80, rect.width, rect.height)
