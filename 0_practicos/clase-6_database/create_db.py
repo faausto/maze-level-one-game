@@ -1,13 +1,11 @@
 import sqlite3
+import db
 
 DB = "ranking.db"
 
-con = sqlite3.connect(DB)
-con.execute("""CREATE TABLE IF NOT EXISTS puntajes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
-    puntaje INTEGER NOT NULL)""")
+db.init_db()
 
+con = sqlite3.connect(DB)
 con.execute("INSERT INTO puntajes (nombre, puntaje) VALUES (?, ?)", ("Ana", 1500))
 con.execute("INSERT INTO puntajes (nombre, puntaje) VALUES (?, ?)", ("Luis", 2300))
 con.execute("INSERT INTO puntajes (nombre, puntaje) VALUES (?, ?)", ("Sofia", 1800))

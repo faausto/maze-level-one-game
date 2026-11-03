@@ -19,7 +19,7 @@ camara = Camara(ANCHO, ALTO, laberinto.ancho_mundo, laberinto.alto_mundo)
 
 # JUGADOR
 jugador = pygame.Rect(TILE + 5, TILE + 5, 30, 30)
-velocidad = 4
+velocidad = 200
 
 # META
 meta = pygame.Rect(
@@ -31,6 +31,8 @@ meta = pygame.Rect(
 
 running = True
 while running:
+    dt = clock.tick(60) / 1000.0
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -38,13 +40,13 @@ while running:
     keys = pygame.key.get_pressed()
     dx = dy = 0
     if keys[pygame.K_LEFT]:
-        dx = -velocidad
+        dx = -velocidad * dt
     if keys[pygame.K_RIGHT]:
-        dx = velocidad
+        dx = velocidad * dt
     if keys[pygame.K_UP]:
-        dy = -velocidad
+        dy = -velocidad * dt
     if keys[pygame.K_DOWN]:
-        dy = velocidad
+        dy = velocidad * dt
 
     # colisiones en x
     jugador.x += dx
@@ -85,6 +87,5 @@ while running:
     pygame.draw.rect(pantalla, (50, 220, 80), r_meta)
 
     pygame.display.flip()
-    clock.tick(60)
 
 pygame.quit()

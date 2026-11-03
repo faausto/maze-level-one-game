@@ -1,10 +1,13 @@
 import pygame
+import os
 
 
 class Jugador(pygame.sprite.Sprite):
     def __init__(self, pantalla_rect):
         super().__init__()
-        self.image = pygame.image.load("assets/images/nave.png").convert_alpha()
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ruta_imagen = os.path.join(base_dir, "assets", "images", "nave.png")
+        self.image = pygame.image.load(ruta_imagen).convert_alpha()
         self.image = pygame.transform.scale(self.image, (50, 50))
         self.rect = self.image.get_rect(center=(400, 300))
         self.velocidad = 300

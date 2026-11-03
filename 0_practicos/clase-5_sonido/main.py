@@ -1,10 +1,38 @@
 import pygame
 import random
+import os
 
 from laberinto import Laberinto
 from camara import Camara
 import audio
 import hud
+
+
+def generar_moneda(laberinto, jugador, meta, monedas, tile):
+    intentos = 0
+    while intentos < 20:
+        mx = random.randint(1, len(laberinto.mapa[0]) - 2) * tile
+        my = random.randint(1, len(laberinto.mapa) - 2) * tile
+        rect_moneda = pygame.Rect(mx + 5, my + 5, tile - 10, tile - 10)
+        colision = False
+        for p in laberinto.paredes:
+            if rect_moneda.colliderect(p):
+                colision = True
+                break
+        if colision or rect_moneda.colliderect(jugador) or rect_moneda.colliderect(meta):
+            intentos += 1
+            continue
+        overlap = False
+        for m in monedas:
+            if rect_moneda.colliderect(m):
+                overlap = True
+                break
+        if not overlap:
+            monedas.append(rect_moneda)
+            return True
+        intentos += 1
+    return False
+
 
 pygame.init()
 audio.inicializar_audio()
@@ -28,31 +56,24 @@ meta = pygame.Rect(
     TILE
 )
 
-audio.cargar_musica("assets/sounds/soundtrack.wav")
+base_dir = os.path.dirname(os.path.abspath(__file__))
+ruta_musica = os.path.join(base_dir, "assets", "sounds", "soundtrack.wav")
+ruta_victoria = os.path.join(base_dir, "assets", "sounds", "victory.mp3")
+
+audio.cargar_musica(ruta_musica)
 audio.reproducir_musica(volumen=0.2, loops=-1)
 
-sonido_victoria = audio.cargar_sonido("assets/sounds/victory.mp3")
+sonido_victoria = audio.cargar_sonido(ruta_victoria)
 
 fuente = hud.crear_fuente(36)
 
 monedas = []
 for _ in range(5):
-    while True:
-        mx = random.randint(1, len(laberinto.mapa[0]) - 2) * TILE
-        my = random.randint(1, len(laberinto.mapa) - 2) * TILE
-        rect_moneda = pygame.Rect(mx + 5, my + 5, TILE - 10, TILE - 10)
-        colision = False
-        for p in laberinto.paredes:
-            if rect_moneda.colliderect(p):
-                colision = True
-                break
-        if not colision and not rect_moneda.colliderect(jugador) and not rect_moneda.colliderect(meta):
-            monedas.append(rect_moneda)
-            break
+    generar_moneda(laberinto, jugador, meta, monedas, TILE)
 
 timer_moneda = 0
 puntaje = 0
-vidas = 3
+vidas = 3  # placeholder, sin lógica de daño en este práctico
 tiempo = 0
 
 running = True
@@ -104,26 +125,7 @@ while running:
             timer_moneda = 0
             if len(monedas) < 10:
                 for _ in range(3):
-                    intentos = 0
-                    while intentos < 20:
-                        mx = random.randint(1, len(laberinto.mapa[0]) - 2) * TILE
-                        my = random.randint(1, len(laberinto.mapa) - 2) * TILE
-                        rect_moneda = pygame.Rect(mx + 5, my + 5, TILE - 10, TILE - 10)
-                        colision = False
-                        for p in laberinto.paredes:
-                            if rect_moneda.colliderect(p):
-                                colision = True
-                                break
-                        if not colision and not rect_moneda.colliderect(jugador) and not rect_moneda.colliderect(meta):
-                            overlap = False
-                            for m in monedas:
-                                if rect_moneda.colliderect(m):
-                                    overlap = True
-                                    break
-                            if not overlap:
-                                monedas.append(rect_moneda)
-                                break
-                        intentos += 1
+                    generar_moneda(laberinto, jugador, meta, monedas, TILE)
 
         if jugador.colliderect(meta):
             victoria = True
