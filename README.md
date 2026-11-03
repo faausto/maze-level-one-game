@@ -45,17 +45,18 @@ El jugador controla a un personaje dentro de un laberinto de mayor tamaño que l
 - [x] Registro de nombre y puntaje en SQLite, solo en caso de Victoria.
 
 **FASE 7 – Preparación multimedia**
-- [ ] Cargador de imágenes y sonidos
+- [x] Cargador de imágenes y sonidos
 
 **FASE 8 – Decorado y HUD**
-- [ ] Paredes y suelo con imágenes
-- [ ] Frutas con su imagen propia
+- [x] Paredes y suelo con imágenes
+- [x] Frutas con su imagen propia
 - [ ] Salida con efecto visual
 - [ ] Iconos en el HUD (vidas, puntos, tiempo)
+- [ ] Corregir detalles visuales de menú y pantallas en general
 
 **FASE 9 – Animaciones**
 - [x] Personaje camina en 8 direcciones
-- [ ] Enemigos caminan en 4 direcciones
+- [x] Enemigos caminan en 4 direcciones
 
 **FASE 10 – Sonido**
 - [ ] Música de fondo en partida
