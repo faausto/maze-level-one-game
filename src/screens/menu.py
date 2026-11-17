@@ -1,7 +1,6 @@
 import pygame
 import os
-from src.constants import COLOR_FONDO, COLOR_PANEL, COLOR_BORDE, COLOR_TEXTO, COLOR_TITULO, ANCHO_PANTALLA, ALTO_PANTALLA
-from src.ui import fonts
+from src.constants import COLOR_FONDO, ANCHO_PANTALLA, ALTO_PANTALLA
 from src.ui.menu_ui import dibujar_opciones_menu
 
 
@@ -15,7 +14,7 @@ class MenuScreen:
     def _cargar_fondo(self):
         try:
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            bg_path = os.path.join(base_dir, "assets", "images", "background", "menu_backbround.png")
+            bg_path = os.path.join(base_dir, "assets", "images", "background", "menu_background.png")
             img = pygame.image.load(bg_path).convert()
             MenuScreen._background = pygame.transform.scale(img, (ANCHO_PANTALLA, ALTO_PANTALLA))
         except Exception as e:
@@ -48,15 +47,5 @@ class MenuScreen:
             pantalla.blit(MenuScreen._background, (0, 0))
         else:
             pantalla.fill(COLOR_FONDO)
-        titulo = fonts.fuente_titulo.render("Maze Level One Game", True, COLOR_TITULO)
-        pantalla.blit(titulo, (ANCHO_PANTALLA // 2 - titulo.get_width() // 2, 120))
 
         dibujar_opciones_menu(pantalla, game.opciones_menu, game.opcion_menu)
-
-        pygame.draw.rect(
-            pantalla,
-            COLOR_PANEL,
-            (ANCHO_PANTALLA // 2 - 200, 230 + game.opcion_menu * 60, 400, 40),
-            2,
-        )
-        pygame.display.flip()

@@ -4,7 +4,7 @@ from src.entities.animation import DirectionalAnimation
 
 
 class Player:
-    def __init__(self, x, y, ancho=40, alto=40):
+    def __init__(self, x, y, ancho=51, alto=51):
         self.rect = pygame.Rect(x, y, ancho, alto)
         self.velocidad = 300
         self.ancho = ancho

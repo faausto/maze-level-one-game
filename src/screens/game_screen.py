@@ -1,17 +1,15 @@
 import pygame
 import random
+import math
 from src.constants import (
     COLOR_FONDO,
-    COLOR_PARED,
-    COLOR_BORDE_PARED,
-    COLOR_CAMINO,
-    COLOR_BORDE_CAMINO,
     COLOR_OBJETIVO,
-    COLOR_SALIDA,
     COLOR_JUGADOR,
     COLOR_MONSTRUO,
     COLOR_TITULO,
     ANCHO_PANTALLA,
+    ALTO_PANTALLA,
+    HUD_HEIGHT,
     TILE_SIZE,
     VELOCIDAD_JUGADOR,
     FRUTAS_POR_NIVEL,
@@ -26,6 +24,12 @@ from src.entities.player import Player
 from src.entities.monster import Monster
 from src.entities.fruit import Fruit
 from src.ui.hud import dibujar_hud
+
+ENTRADA_SALIDA_MINIMA = 0.70
+PUNTOS_POR_FRUTA = 10
+PUNTOS_POR_VIDA = 20
+PUNTOS_POR_SEGUNDO = 2
+DURACION_EFECTO_VICTORIA = 1.4
 
 
 class GameScreen:
@@ -42,18 +46,20 @@ class GameScreen:
         self.tiempo_inmunidad = 0
         self.invulnerable = False
         self.tiempo_invulnerabilidad = 0
+        self.efecto_victoria = None
+        self._capa_efecto = None
 
     def cargar_nivel(self, nivel, juego):
         self.maze = Maze(nivel)
-        self.camera = Camera(self.maze.ancho, self.maze.alto, ANCHO_PANTALLA, 600)
+        self.camera = Camera(self.maze.ancho, self.maze.alto, ANCHO_PANTALLA, ALTO_PANTALLA)
         mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
         posiciones = self.maze.obtener_posiciones_libres()
 
-        spawn = posiciones[0] if posiciones else (50, 50)
-        self.player = Player(spawn[0] - 20, spawn[1] - 20)
+        spawn = posiciones[0] if posiciones else (64, 64)
+        self.player = Player(spawn[0] - 25, spawn[1] - 25)
 
-        objetivo_pos = posiciones[1] if len(posiciones) > 1 else (spawn[0] + 100, spawn[1])
-        juego.objetivo = pygame.Rect(objetivo_pos[0] - 20, objetivo_pos[1] - 20, 40, 40)
+        objetivo_pos = posiciones[1] if len(posiciones) > 1 else (spawn[0] + 128, spawn[1])
+        juego.objetivo = pygame.Rect(objetivo_pos[0] - 25, objetivo_pos[1] - 25, 51, 51)
 
         self.frutas = []
         fruta_data = FRUTAS_POR_NIVEL[nivel]
@@ -62,7 +68,7 @@ class GameScreen:
         for i, f in enumerate(fruta_data):
             if i < len(posiciones_disponibles):
                 pos = posiciones_disponibles[i]
-                self.frutas.append(Fruit(pos[0] - 12, pos[1] - 12, tipo=f["tipo"], color=f["color"], puntos=f["puntos"]))
+                self.frutas.append(Fruit(pos[0] - 16, pos[1] - 16, tipo=f["tipo"], color=f["color"], puntos=f["puntos"]))
             else:
                 self.frutas.append(Fruit(f["x"], f["y"], tipo=f["tipo"], color=f["color"], puntos=f["puntos"]))
 
@@ -103,25 +109,157 @@ class GameScreen:
             monster.objetivo_wander = None
             monster.origen_wander = (monster.rect.x, monster.rect.y)
             monster.distancia_recorrida = 0
-            monster.max_distancia = random.randint(80, 160)
+            monster.max_distancia = random.randint(102, 205)
             if self.maze:
                 monster._generar_objetivo_wander(self.maze)
 
         salida = SALIDAS[nivel]
         self.salida = pygame.Rect(salida["x"], salida["y"], salida["ancho"], salida["alto"])
-        self.exit_tile = None
-        if self.maze:
-            ts = self.maze.tile_size
-            self.exit_tile = (self.salida.centerx // ts, self.salida.centery // ts)
+        self.maze.abrir_zona(self.salida)
         self.tiempo_nivel = NIVELES[nivel]["tiempo"]
         self.frutas_recolectadas_ventana = []
         self.inmune = False
         self.tiempo_inmunidad = 0
         self.invulnerable = False
         self.tiempo_invulnerabilidad = 0
+        self.efecto_victoria = None
+
+    def _proporcion_dentro_salida(self, jugador_rect):
+        interseccion = jugador_rect.clip(self.salida)
+        area_jugador = jugador_rect.width * jugador_rect.height
+        if area_jugador <= 0:
+            return 0.0
+        area_dentro = interseccion.width * interseccion.height
+        return area_dentro / area_jugador
+
+    def _iniciar_efecto_victoria(self):
+        cx, cy = self.salida.center
+        particulas = []
+        for _ in range(90):
+            angulo = random.uniform(0, math.tau)
+            velocidad = random.uniform(70, 340)
+            vida = random.uniform(0.55, 1.25)
+            particulas.append(
+                {
+                    "x": cx + random.uniform(-18, 18),
+                    "y": cy + random.uniform(-18, 18),
+                    "vx": math.cos(angulo) * velocidad,
+                    "vy": math.sin(angulo) * velocidad - 45,
+                    "radio": random.choice((2, 2, 2, 3, 3, 4)),
+                    "color": random.choice(
+                        (
+                            (255, 214, 92),
+                            (255, 238, 170),
+                            (255, 250, 235),
+                            (150, 225, 120),
+                        )
+                    ),
+                    "vida": vida,
+                    "vida_max": vida,
+                }
+            )
+        self.efecto_victoria = {"tiempo": 0.0, "particulas": particulas}
+
+    def _actualizar_efecto_victoria(self, dt):
+        efecto = self.efecto_victoria
+        efecto["tiempo"] += dt
+        arrastre = max(0.0, 1.0 - 2.1 * dt)
+
+        for particula in efecto["particulas"]:
+            particula["x"] += particula["vx"] * dt
+            particula["y"] += particula["vy"] * dt
+            particula["vx"] *= arrastre
+            particula["vy"] = particula["vy"] * arrastre + 95 * dt
+            particula["vida"] -= dt
+
+        efecto["particulas"] = [
+            p for p in efecto["particulas"] if p["vida"] > 0
+        ]
+
+        if efecto["tiempo"] >= DURACION_EFECTO_VICTORIA:
+            self.efecto_victoria = None
+
+    def _dibujar_efecto_victoria(self, pantalla):
+        efecto = self.efecto_victoria
+        if efecto is None:
+            return
+
+        if self._capa_efecto is None:
+            self._capa_efecto = pygame.Surface(
+                (ANCHO_PANTALLA, ALTO_PANTALLA), pygame.SRCALPHA
+            )
+        capa = self._capa_efecto
+        capa.fill((0, 0, 0, 0))
+
+        tiempo = efecto["tiempo"]
+        t = min(1.0, tiempo / DURACION_EFECTO_VICTORIA)
+        cx = self.salida.centerx - self.camera.x
+        cy = self.salida.centery - self.camera.y + HUD_HEIGHT
+
+        # Destello cálido inicial.
+        alpha_destello = int(70 * max(0.0, 1.0 - tiempo / 0.35))
+        if alpha_destello > 0:
+            capa.fill((255, 232, 160, alpha_destello))
+
+        # Resplandor del tile de salida.
+        alpha_salida = int(120 * (1.0 - t))
+        if alpha_salida > 0:
+            pulso = int(4 + 4 * math.sin(tiempo * math.pi * 8))
+            brillo = pygame.Rect(
+                0, 0, self.salida.width, self.salida.height
+            )
+            brillo.center = (cx, cy)
+            pygame.draw.rect(
+                capa,
+                (255, 238, 170, alpha_salida),
+                brillo.inflate(10 + pulso, 10 + pulso),
+                3,
+                border_radius=10,
+            )
+
+        # Ondas doradas que se expanden.
+        for i in range(3):
+            progreso = (tiempo - i * 0.14) / 0.95
+            if 0.0 <= progreso <= 1.0:
+                radio = int(20 + 210 * progreso)
+                alpha_onda = int(170 * (1.0 - progreso))
+                color = (255, 238, 170) if i % 2 == 0 else (255, 214, 92)
+                pygame.draw.circle(
+                    capa, (*color, alpha_onda), (cx, cy), radio, 3
+                )
+
+        # Chispas doradas.
+        for particula in efecto["particulas"]:
+            px = particula["x"] - self.camera.x
+            py = particula["y"] - self.camera.y + HUD_HEIGHT
+            if px < -20 or px > ANCHO_PANTALLA + 20:
+                continue
+            if py < -20 or py > ALTO_PANTALLA + 20:
+                continue
+
+            proporcion_vida = max(
+                0.0, particula["vida"] / particula["vida_max"]
+            )
+            alpha = int(255 * min(1.0, proporcion_vida * 1.8))
+            radio = max(
+                1, int(particula["radio"] * (0.5 + 0.5 * proporcion_vida))
+            )
+            color = (*particula["color"], alpha)
+            pygame.draw.circle(
+                capa, (255, 240, 190, max(1, alpha // 5)), (px, py), radio + 3
+            )
+            pygame.draw.circle(capa, color, (px, py), radio)
+
+        pantalla.blit(capa, (0, 0))
 
     def update(self, juego, dt):
         if juego.estado != juego.estado_juego.JUEGO:
+            return
+
+        if self.efecto_victoria is not None:
+            self._actualizar_efecto_victoria(dt)
+            if self.efecto_victoria is None:
+                juego.estado = juego.estado_juego.INGRESO_NOMBRE
             return
 
         if self.inmune:
@@ -160,7 +298,7 @@ class GameScreen:
         for fruta in self.frutas:
             if fruta.esta_activa() and self.player.get_rect().colliderect(fruta.get_rect()):
                 fruta.recolectar()
-                juego.puntaje += fruta.puntos
+                juego.puntaje += PUNTOS_POR_FRUTA
                 ahora = pygame.time.get_ticks() / 1000.0
                 self.frutas_recolectadas_ventana.append(ahora)
                 self.frutas_recolectadas_ventana = [t for t in self.frutas_recolectadas_ventana if ahora - t <= 10]
@@ -185,39 +323,26 @@ class GameScreen:
                         juego.estado = juego.estado_juego.RESULTADO
                     break
 
-        if self.player.get_rect().colliderect(self.salida):
+        if self._proporcion_dentro_salida(self.player.get_rect()) >= ENTRADA_SALIDA_MINIMA:
             if juego.nivel_actual < len(NIVELES) - 1:
                 juego.nivel_actual += 1
                 self.cargar_nivel(juego.nivel_actual, juego)
             else:
-                bonus = 100 + juego.vidas * 50 + int(self.tiempo_nivel) * 5
+                bonus = (
+                    juego.vidas * PUNTOS_POR_VIDA
+                    + int(self.tiempo_nivel) * PUNTOS_POR_SEGUNDO
+                )
                 juego.puntaje_final = juego.puntaje + bonus
                 juego.mensaje_resultado = "Victoria"
-                juego.estado = juego.estado_juego.INGRESO_NOMBRE
+                self._iniciar_efecto_victoria()
 
     def draw(self, juego):
         self.camera.update(self.player.get_rect())
         pantalla = juego.pantalla
         pantalla.fill(COLOR_FONDO)
 
-        self.maze.dibujar(pantalla, self.camera)
-
-        objetivo_pantalla = self.camera.aplicar(juego.objetivo)
-
-        hud_height = 80
+        hud_height = HUD_HEIGHT
         self.maze.dibujar(pantalla, self.camera, offset_y=hud_height)
-
-        if hasattr(self, 'exit_tile') and self.exit_tile and self.maze:
-            ts = self.maze.tile_size
-            ex, ey = self.exit_tile
-            rect = pygame.Rect(ex * ts - self.camera.x, ey * ts - self.camera.y + hud_height, ts, ts)
-            pygame.draw.rect(pantalla, COLOR_PARED, rect)
-            pygame.draw.rect(pantalla, (40, 255, 150), rect)
-            pygame.draw.rect(pantalla, (0, 150, 70), rect, 2)
-        else:
-            salida_pantalla = self.camera.aplicar(self.salida)
-            pygame.draw.rect(pantalla, COLOR_SALIDA, salida_pantalla)
-            pygame.draw.rect(pantalla, (40, 255, 150), salida_pantalla, 3)
 
         for fruta in self.frutas:
             if fruta.esta_activa():
@@ -252,5 +377,5 @@ class GameScreen:
             else:
                 pygame.draw.rect(pantalla, COLOR_MONSTRUO, monstruo_pantalla)
 
+        self._dibujar_efecto_victoria(pantalla)
         dibujar_hud(pantalla, juego.vidas, juego.puntaje, self.tiempo_nivel, juego.nivel_actual, self.inmune)
-        pygame.display.flip()

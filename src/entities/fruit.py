@@ -8,7 +8,7 @@ class Fruit:
     _frames = None
     _frame_size = 32
 
-    def __init__(self, x, y, ancho=25, alto=25, tipo="", color=(255, 140, 0), puntos=10):
+    def __init__(self, x, y, ancho=32, alto=32, tipo="", color=(255, 140, 0), puntos=10):
         self.rect = pygame.Rect(x, y, ancho, alto)
         self.tipo = tipo
         self.color = color

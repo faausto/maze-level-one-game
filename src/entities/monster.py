@@ -21,7 +21,7 @@ class Monster:
         self.objetivo_wander = None
         self.origen_wander = (x, y)
         self.distancia_recorrida = 0
-        self.max_distancia = random.randint(80, 160)
+        self.max_distancia = random.randint(102, 205)
         self.tiempo_espera = 0
         self.viendo_hacia_atras = False
         self.visual_scale = 3.0
@@ -229,7 +229,7 @@ class Monster:
             if dist_m < 4:
                 if (objetivo_x, objetivo_y) == (self.origen_wander[0], self.origen_wander[1]):
                     self._generar_objetivo_wander(maze)
-                    self.max_distancia = random.randint(80, 160)
+                    self.max_distancia = random.randint(102, 205)
                 else:
                     self.objetivo_wander = (self.origen_wander[0], self.origen_wander[1])
                 self.is_moving = False

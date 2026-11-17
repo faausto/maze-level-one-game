@@ -34,6 +34,7 @@ class EstadoJuego:
     JUEGO = "juego"
     RESULTADO = "resultado"
     RANKING = "ranking"
+    RANKING_VICTORIA = "ranking_victoria"
     FINAL = "final"
     INGRESO_NOMBRE = "ingreso_nombre"
 
@@ -42,8 +43,10 @@ class Juego:
     def __init__(self):
         pygame.init()
         fonts.inicializar_fuentes()
-        self.pantalla = pygame.display.set_mode((ANCHO_PANTALLA, ALTO_PANTALLA))
+        self.fullscreen = False
+        self.display = pygame.display.set_mode((ANCHO_PANTALLA, ALTO_PANTALLA))
         pygame.display.set_caption("Maze Level One Game")
+        self.pantalla = pygame.Surface((ANCHO_PANTALLA, ALTO_PANTALLA))
         self.clock = pygame.time.Clock()
 
         self.estado_juego = EstadoJuego
@@ -56,7 +59,7 @@ class Juego:
         self.nivel_actual = 0
         self.vidas = 5
         self.puntaje = 0
-        self.objetivo = pygame.Rect(0, 0, 40, 40)
+        self.objetivo = pygame.Rect(0, 0, 51, 51)
         self.database = Database()
 
         self.menu_screen = MenuScreen()
@@ -73,7 +76,7 @@ class Juego:
         self.nivel_actual = 0
         self.vidas = 5
         self.puntaje = 0
-        self.objetivo = pygame.Rect(0, 0, 40, 40)
+        self.objetivo = pygame.Rect(0, 0, 51, 51)
         self.cargar_nivel(0)
 
     def cargar_nivel(self, nivel):
@@ -89,6 +92,14 @@ class Juego:
                 pygame.quit()
                 sys.exit()
 
+            if (
+                event.type == pygame.KEYDOWN
+                and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
+                and (event.mod & pygame.KMOD_ALT)
+            ):
+                self.toggle_fullscreen()
+                continue
+
             if self.estado == EstadoJuego.MENU:
                 self.menu_screen.handle_event(self, event)
             elif self.estado == EstadoJuego.INSTRUCCIONES:
@@ -102,8 +113,37 @@ class Juego:
                 self.name_input_screen.handle_event(self, event)
             elif self.estado == EstadoJuego.RANKING:
                 self.ranking_screen.handle_event(self, event)
+            elif self.estado == EstadoJuego.RANKING_VICTORIA:
+                self.ranking_screen.handle_event(self, event)
             elif self.estado == EstadoJuego.FINAL:
                 self.final_screen.handle_event(self, event)
+
+    def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
+        if self.fullscreen:
+            try:
+                ancho, alto = pygame.display.get_desktop_sizes()[0]
+            except (AttributeError, IndexError):
+                info = pygame.display.Info()
+                ancho, alto = info.current_w, info.current_h
+            self.display = pygame.display.set_mode((ancho, alto), pygame.FULLSCREEN)
+        else:
+            self.display = pygame.display.set_mode((ANCHO_PANTALLA, ALTO_PANTALLA))
+
+    def presentar(self):
+        if self.fullscreen:
+            dw, dh = self.display.get_size()
+            sw, sh = self.pantalla.get_size()
+            scale = min(dw / sw, dh / sh)
+            tw, th = int(sw * scale), int(sh * scale)
+            x = (dw - tw) // 2
+            y = (dh - th) // 2
+            self.display.fill((0, 0, 0))
+            scaled = pygame.transform.scale(self.pantalla, (tw, th))
+            self.display.blit(scaled, (x, y))
+        else:
+            self.display.blit(self.pantalla, (0, 0))
+        pygame.display.flip()
 
     def actualizar(self, dt):
         if self.estado == EstadoJuego.JUEGO:
@@ -122,6 +162,8 @@ class Juego:
             self.name_input_screen.draw(self)
         elif self.estado == EstadoJuego.RANKING:
             self.ranking_screen.draw(self)
+        elif self.estado == EstadoJuego.RANKING_VICTORIA:
+            self.ranking_screen.draw(self)
         elif self.estado == EstadoJuego.FINAL:
             self.final_screen.draw(self)
 
@@ -131,6 +173,7 @@ class Juego:
             self.manejar_eventos()
             self.actualizar(dt)
             self.dibujar()
+            self.presentar()
 
 
 if __name__ == "__main__":
