@@ -50,9 +50,9 @@ El jugador controla a un personaje dentro de un laberinto de mayor tamaño que l
 **FASE 8 – Decorado y HUD**
 - [x] Paredes y suelo con imágenes
 - [x] Frutas con su imagen propia
-- [ ] Salida con efecto visual
-- [ ] Iconos en el HUD (vidas, puntos, tiempo)
-- [ ] Corregir detalles visuales de menú y pantallas en general
+- [x] Salida con efecto visual
+- [x] Iconos en el HUD (vidas, puntos, tiempo)
+- [x] Corregir detalles visuales de menú y pantallas en general
 
 **FASE 9 – Animaciones**
 - [x] Personaje camina en 8 direcciones
