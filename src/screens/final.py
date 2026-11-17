@@ -21,9 +21,12 @@ class FinalScreen:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 game.opcion_menu = (game.opcion_menu - 1) % 2
+                game.audio.reproducir("menu_select")
             elif event.key == pygame.K_DOWN:
                 game.opcion_menu = (game.opcion_menu + 1) % 2
+                game.audio.reproducir("menu_select")
             elif event.key == pygame.K_RETURN:
+                game.audio.reproducir("menu_confirm")
                 if game.opcion_menu == 0:
                     game.reiniciar_partida()
                     game.estado = game.estado_juego.JUEGO

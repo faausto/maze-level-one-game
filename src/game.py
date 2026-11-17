@@ -18,6 +18,7 @@ from src.constants import (
     MONSTRUOS_POR_NIVEL,
     SALIDAS,
 )
+from src.audio import Audio
 from src.db.database import Database
 from src.screens.menu import MenuScreen
 from src.screens.instructions import InstructionsScreen
@@ -61,6 +62,7 @@ class Juego:
         self.puntaje = 0
         self.objetivo = pygame.Rect(0, 0, 51, 51)
         self.database = Database()
+        self.audio = Audio()
 
         self.menu_screen = MenuScreen()
         self.instructions_screen = InstructionsScreen()
@@ -145,9 +147,17 @@ class Juego:
             self.display.blit(self.pantalla, (0, 0))
         pygame.display.flip()
 
+    def _actualizar_audio(self):
+        if self.estado == EstadoJuego.JUEGO:
+            self.audio.reproducir_musica("maze_lv1")
+        else:
+            self.audio.detener_pasos()
+            self.audio.reproducir_musica("menu_sound")
+
     def actualizar(self, dt):
         if self.estado == EstadoJuego.JUEGO:
             self.game_screen.update(self, dt)
+        self._actualizar_audio()
 
     def dibujar(self):
         if self.estado == EstadoJuego.MENU:

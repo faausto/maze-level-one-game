@@ -19,6 +19,8 @@ class RankingScreen:
 
         if game.estado == game.estado_juego.RANKING_VICTORIA:
             if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_ESCAPE):
+                if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                    game.audio.reproducir("menu_confirm")
                 game.estado = game.estado_juego.FINAL
                 game.opcion_menu = 0
         elif event.key == pygame.K_ESCAPE:

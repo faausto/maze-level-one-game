@@ -16,6 +16,7 @@ class NameInputScreen:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 if game.texto_nombre.strip():
+                    game.audio.reproducir("menu_confirm")
                     game.database.guardar_puntaje(game.texto_nombre.strip(), game.puntaje_final)
                     game.cargar_ranking()
                     game.estado = game.estado_juego.RANKING_VICTORIA

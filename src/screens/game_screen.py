@@ -48,6 +48,7 @@ class GameScreen:
         self.tiempo_invulnerabilidad = 0
         self.efecto_victoria = None
         self._capa_efecto = None
+        self.tiempo_paso = 0.0
 
     def cargar_nivel(self, nivel, juego):
         self.maze = Maze(nivel)
@@ -123,6 +124,7 @@ class GameScreen:
         self.invulnerable = False
         self.tiempo_invulnerabilidad = 0
         self.efecto_victoria = None
+        self.tiempo_paso = 0.0
 
     def _proporcion_dentro_salida(self, jugador_rect):
         interseccion = jugador_rect.clip(self.salida)
@@ -260,6 +262,7 @@ class GameScreen:
             self._actualizar_efecto_victoria(dt)
             if self.efecto_victoria is None:
                 juego.estado = juego.estado_juego.INGRESO_NOMBRE
+                juego.audio.reproducir("final_victory")
             return
 
         if self.inmune:
@@ -278,6 +281,7 @@ class GameScreen:
             juego.mensaje_resultado = "Game Over"
             juego.puntaje_final = juego.puntaje
             juego.estado = juego.estado_juego.RESULTADO
+            juego.audio.reproducir("game_over")
             return
 
         keys = pygame.key.get_pressed()
@@ -292,12 +296,22 @@ class GameScreen:
             dy = VELOCIDAD_JUGADOR * dt
 
         mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
+        posicion_anterior = self.player.rect.topleft
         self.player.mover(dx, dy, self.maze, mundo_rect)
         self.player.update(dt)
+
+        if self.player.rect.topleft != posicion_anterior:
+            self.tiempo_paso -= dt
+            if self.tiempo_paso <= 0:
+                juego.audio.reproducir_paso()
+                self.tiempo_paso = 0.30
+        else:
+            self.tiempo_paso = 0.0
 
         for fruta in self.frutas:
             if fruta.esta_activa() and self.player.get_rect().colliderect(fruta.get_rect()):
                 fruta.recolectar()
+                juego.audio.reproducir("collect")
                 juego.puntaje += PUNTOS_POR_FRUTA
                 ahora = pygame.time.get_ticks() / 1000.0
                 self.frutas_recolectadas_ventana.append(ahora)
@@ -306,6 +320,7 @@ class GameScreen:
                     self.inmune = True
                     self.tiempo_inmunidad = 5
                     self.frutas_recolectadas_ventana = []
+                    juego.audio.reproducir("inmune")
 
         mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
         for monstruo in self.monstruos:
@@ -315,12 +330,14 @@ class GameScreen:
             for monstruo in self.monstruos:
                 if self.player.get_rect().colliderect(monstruo.get_rect()):
                     juego.vidas -= 1
+                    juego.audio.reproducir("damage")
                     self.invulnerable = True
                     self.tiempo_invulnerabilidad = 1.0
                     if juego.vidas <= 0:
                         juego.mensaje_resultado = "Game Over"
                         juego.puntaje_final = juego.puntaje
                         juego.estado = juego.estado_juego.RESULTADO
+                        juego.audio.reproducir("game_over")
                     break
 
         if self._proporcion_dentro_salida(self.player.get_rect()) >= ENTRADA_SALIDA_MINIMA:
@@ -334,6 +351,7 @@ class GameScreen:
                 )
                 juego.puntaje_final = juego.puntaje + bonus
                 juego.mensaje_resultado = "Victoria"
+                juego.audio.reproducir("success_level")
                 self._iniciar_efecto_victoria()
 
     def draw(self, juego):

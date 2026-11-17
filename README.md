@@ -59,17 +59,17 @@ El jugador controla a un personaje dentro de un laberinto de mayor tamaño que l
 - [x] Enemigos caminan en 4 direcciones
 
 **FASE 10 – Sonido**
-- [ ] Música de fondo en partida
-- [ ] Música de victoria
-- [ ] Música de game over
-- [ ] Sonido al caminar
-- [ ] Sonido al comer fruta
-- [ ] Sonido al recibir daño
-- [ ] Sonido al activar inmunidad
-- [ ] Sonidos en menús (navegar, confirmar)
+- [x] Música de fondo en partida
+- [x] Música de victoria
+- [x] Música de game over
+- [x] Sonido al caminar
+- [x] Sonido al comer fruta
+- [x] Sonido al recibir daño
+- [x] Sonido al activar inmunidad
+- [x] Sonidos en menús (navegar, confirmar)
 
 **ANEXOS**
-- [ ] Funcionamiento 100% local, sin conexión a Internet.
+- [x] Funcionamiento 100% local, sin conexión a Internet.
 
 ## Cómo ejecutar el juego
 

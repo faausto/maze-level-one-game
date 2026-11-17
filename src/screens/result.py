@@ -18,6 +18,7 @@ from src.ui.common import dibujar_panel, dibujar_separador, render_con_borde
 class ResultScreen:
     def handle_event(self, game, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+            game.audio.reproducir("menu_confirm")
             game.estado = game.estado_juego.FINAL
             game.opcion_menu = 0
 
