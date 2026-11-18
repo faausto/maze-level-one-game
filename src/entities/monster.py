@@ -2,18 +2,22 @@
 
 import logging
 import math
-import random
+from collections import deque
 from typing import ClassVar
 
 import pygame
 
-from src.constants import IMAGES_DIR
+from src.constants import (
+    IMAGES_DIR,
+    INTERVALO_RECALCULO_CAMINO,
+    PAUSA_MONSTRUO_TRAS_DANO,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class Monster:
-    """Enemigo que se mueve por el laberinto y puede perseguir al jugador."""
+    """Enemigo que patrulla el laberinto y puede perseguir al jugador."""
 
     _sprite_sheet = None
     _animations: ClassVar[dict] = {}
@@ -21,16 +25,19 @@ class Monster:
     _cols = 6
     _rows = 4
 
-    def __init__(self, x, y, ancho, alto, puntos, velocidad, rango_deteccion=0):
+    def __init__(self, x, y, ancho, alto, patrulla, velocidad, rango_deteccion=0):
         self.rect = pygame.Rect(x, y, ancho, alto)
-        self.puntos = puntos
+        self._pos_x = float(x)
+        self._pos_y = float(y)
+        self.patrulla = patrulla
         self.indice_punto = 0
+        self.camino_patrulla = None
+        self.destino_patrulla = None
         self.velocidad = velocidad
         self.rango_deteccion = rango_deteccion
         self.persiguiendo = False
-        self.objetivo_wander = None
-        self.origen_wander = (x, y)
-        self.max_distancia = random.randint(102, 205)
+        self.camino = None
+        self.tiempo_recalculo = 0.0
         self.tiempo_espera = 0
         self.visual_scale = 3.0
         self.visual_ancho = int(ancho * self.visual_scale)
@@ -102,34 +109,6 @@ class Monster:
         offset_y = (self.visual_alto - self.rect.height) // 2
         return offset_x, offset_y - 10
 
-    def _es_celda_valida(self, maze, x, y):
-        if not maze:
-            return True
-        tile_size = maze.tile_size
-        cx = int(x // tile_size)
-        cy = int(y // tile_size)
-        if cy < 0 or cy >= len(maze.mapa) or cx < 0 or cx >= len(maze.mapa[0]):
-            return False
-        if maze.mapa[cy][cx] == "1":
-            return False
-        test_rect = pygame.Rect(int(x), int(y), self.rect.width, self.rect.height)
-        return not maze.colisiona(test_rect)
-
-    def _generar_objetivo_wander(self, maze):
-        if not maze:
-            return
-        direcciones = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-        random.shuffle(direcciones)
-        for dx_dir, dy_dir in direcciones:
-            dist_candidata = random.randint(60, self.max_distancia)
-            nx = self.rect.x + dx_dir * dist_candidata
-            ny = self.rect.y + dy_dir * dist_candidata
-            if self._es_celda_valida(maze, nx, ny):
-                self.objetivo_wander = (nx, ny)
-                self.origen_wander = (self.rect.x, self.rect.y)
-                return
-        self.objetivo_wander = (self.origen_wander[0], self.origen_wander[1])
-
     def _avanzar_animacion(self, dt):
         self.frame_timer += dt
         if self.frame_timer >= self.frame_time:
@@ -143,6 +122,16 @@ class Monster:
                 jugador_rect.centery - self.rect.centery,
             )
             self.persiguiendo = dist_jugador <= self.rango_deteccion
+        else:
+            self.persiguiendo = False
+
+    def pausar_tras_dano(self):
+        """Detiene al monstruo tras tocar al jugador antes de volver a patrullar."""
+        self.tiempo_espera = PAUSA_MONSTRUO_TRAS_DANO
+        self.persiguiendo = False
+        self.camino = None
+        self.camino_patrulla = None
+        self.destino_patrulla = None
 
     def _desplazamiento(self, dx, dy, dt):
         vector = pygame.math.Vector2(dx, dy)
@@ -151,121 +140,184 @@ class Monster:
         vector = vector.normalize() * self.velocidad * dt
         return vector.x, vector.y
 
-    def _perseguir(self, dt, jugador_rect, maze, mundo_rect):
-        objetivo_x = jugador_rect.centerx - self.rect.width // 2
-        objetivo_y = jugador_rect.centery - self.rect.height // 2
-        dx = objetivo_x - self.rect.x
-        dy = objetivo_y - self.rect.y
-        dist = math.hypot(dx, dy)
-        movido = False
+    def _centro_celda(self, celda, maze):
+        """Devuelve el centro en píxeles de una celda del laberinto."""
+        x, y = celda
+        tile = maze.tile_size
+        return x * tile + tile // 2, y * tile + tile // 2
 
-        if dist > 0:
-            mov_x, mov_y = self._desplazamiento(dx, dy, dt)
-            self._actualizar_direccion(mov_x, mov_y)
+    def _bfs(self, maze, inicio, destino):
+        """Busca un camino de celdas libres entre dos celdas."""
+        if inicio == destino:
+            return [inicio]
 
-            nuevo_x = self.rect.move(mov_x, 0)
-            if not maze.colisiona(nuevo_x):
-                self.rect.x = nuevo_x.x
-                movido = True
-            else:
-                self.persiguiendo = False
-                self.tiempo_espera = 0.2
+        cola = deque([inicio])
+        previos = {inicio: None}
+        while cola:
+            actual = cola.popleft()
+            if actual == destino:
+                break
+            x, y = actual
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if not (0 <= ny < len(maze.mapa) and 0 <= nx < len(maze.mapa[0])):
+                    continue
+                if maze.mapa[ny][nx] == "1" or (nx, ny) in previos:
+                    continue
+                previos[(nx, ny)] = actual
+                cola.append((nx, ny))
 
-            nuevo_y = self.rect.move(0, mov_y)
-            if not maze.colisiona(nuevo_y):
-                self.rect.y = nuevo_y.y
-                movido = True
-            else:
-                self.persiguiendo = False
-                self.tiempo_espera = 0.2
+        if destino not in previos:
+            return []
 
+        camino = []
+        actual = destino
+        while actual != inicio:
+            camino.append(actual)
+            actual = previos[actual]
+        camino.reverse()
+        return camino
+
+    def _calcular_camino(self, maze, jugador_rect):
+        """Busca con BFS un camino de celdas libres hasta el jugador."""
+        tile = maze.tile_size
+        inicio = (self.rect.centerx // tile, self.rect.centery // tile)
+        destino = (
+            jugador_rect.centerx // tile,
+            jugador_rect.centery // tile,
+        )
+        return self._bfs(maze, inicio, destino)
+
+    def _calcular_camino_celda(self, maze, destino):
+        """Busca con BFS un camino de celdas libres hasta una celda."""
+        tile = maze.tile_size
+        inicio = (self.rect.centerx // tile, self.rect.centery // tile)
+        return self._bfs(maze, inicio, destino)
+
+    def _mover_hacia(self, dt, objetivo_x, objetivo_y, maze, mundo_rect):
+        """Mueve el monstruo hacia un punto y devuelve (se movió, llegó)."""
+        dx = objetivo_x - self.rect.centerx
+        dy = objetivo_y - self.rect.centery
+        distancia = math.hypot(dx, dy)
+
+        if distancia <= self.velocidad * dt:
+            self.rect.center = (round(objetivo_x), round(objetivo_y))
             if mundo_rect:
                 self.rect.clamp_ip(mundo_rect)
+            self._pos_x = float(self.rect.x)
+            self._pos_y = float(self.rect.y)
+            return True, True
+        if distancia <= 0:
+            return False, True
 
-        return movido or dist > 0.1
+        mov_x, mov_y = self._desplazamiento(dx, dy, dt)
+        self._actualizar_direccion(mov_x, mov_y)
+
+        # Ejes por separado y posición flotante: si un muro bloquea un eje,
+        # el otro desliza sin perder las fracciones de píxel.
+        nuevo_x = self.rect.copy()
+        nuevo_x.x = round(self._pos_x + mov_x)
+        if not maze.colisiona(nuevo_x):
+            self._pos_x += mov_x
+
+        nuevo_y = self.rect.copy()
+        nuevo_y.x = round(self._pos_x)
+        nuevo_y.y = round(self._pos_y + mov_y)
+        if not maze.colisiona(nuevo_y):
+            self._pos_y += mov_y
+
+        self.rect.x = round(self._pos_x)
+        self.rect.y = round(self._pos_y)
+        if mundo_rect:
+            self.rect.clamp_ip(mundo_rect)
+            self._pos_x = float(self.rect.x)
+            self._pos_y = float(self.rect.y)
+        return True, False
+
+    def _perseguir(self, dt, jugador_rect, maze, mundo_rect):
+        """Sigue el camino BFS hacia el jugador sin atravesar paredes."""
+        if self.camino is None:
+            self._pos_x = float(self.rect.x)
+            self._pos_y = float(self.rect.y)
+        if self.camino is None or not self.camino or self.tiempo_recalculo <= 0:
+            self.camino = self._calcular_camino(maze, jugador_rect)
+            self.tiempo_recalculo = INTERVALO_RECALCULO_CAMINO
+        self.tiempo_recalculo -= dt
+
+        if not self.camino:
+            self.persiguiendo = False
+            self.tiempo_espera = 0.2
+            return False
+
+        tile = maze.tile_size
+        celda_actual = (self.rect.centerx // tile, self.rect.centery // tile)
+        if len(self.camino) == 1 and self.camino[0] == celda_actual:
+            objetivo_x = jugador_rect.centerx
+            objetivo_y = jugador_rect.centery
+        else:
+            objetivo_x, objetivo_y = self._centro_celda(self.camino[0], maze)
+
+        movido, llego = self._mover_hacia(
+            dt, objetivo_x, objetivo_y, maze, mundo_rect
+        )
+        if llego and len(self.camino) > 1:
+            self.camino.pop(0)
+        return movido
+
+    def _siguiente_punto_patrulla(self):
+        """Avanza al siguiente punto del circuito de patrulla."""
+        self.indice_punto = (self.indice_punto + 1) % len(self.patrulla)
+        self.camino_patrulla = None
+        self.destino_patrulla = None
+
+    def _iniciar_camino_patrulla(self, maze, destino):
+        """Calcula el camino hacia el punto de patrulla actual."""
+        self.camino_patrulla = self._calcular_camino_celda(maze, destino)
+        self.destino_patrulla = destino
+        self._pos_x = float(self.rect.x)
+        self._pos_y = float(self.rect.y)
 
     def _patrullar(self, dt, maze, mundo_rect):
-        if not (self.puntos and maze):
+        """Recorre el circuito de puntos libres asignado al monstruo."""
+        if not (self.patrulla and maze):
             return False
 
-        objetivo_x, objetivo_y = self.puntos[self.indice_punto]
-        dx = objetivo_x - self.rect.x
-        dy = objetivo_y - self.rect.y
-        dist = math.hypot(dx, dy)
+        destino = self.patrulla[self.indice_punto]
+        if self.camino_patrulla is None or self.destino_patrulla != destino:
+            self._iniciar_camino_patrulla(maze, destino)
 
-        if dist < max(2, self.velocidad * dt):
-            self.rect.x = objetivo_x
-            self.rect.y = objetivo_y
-            self.indice_punto = (self.indice_punto + 1) % len(self.puntos)
-            return False
-        if dist <= 0:
+        if not self.camino_patrulla:
+            self._siguiente_punto_patrulla()
             return False
 
-        mov_x, mov_y = self._desplazamiento(dx, dy, dt)
-        self._actualizar_direccion(mov_x, mov_y)
+        tile = maze.tile_size
+        celda_actual = (self.rect.centerx // tile, self.rect.centery // tile)
+        if len(self.camino_patrulla) == 1 and self.camino_patrulla[0] == celda_actual:
+            centro_x, centro_y = self._centro_celda(destino, maze)
+            distancia = math.hypot(
+                centro_x - self.rect.centerx,
+                centro_y - self.rect.centery,
+            )
+            if distancia < 2:
+                self._siguiente_punto_patrulla()
+                return False
 
-        nuevo_x = self.rect.move(mov_x, 0)
-        if not maze.colisiona(nuevo_x):
-            self.rect.x = nuevo_x.x
-        nuevo_y = self.rect.move(0, mov_y)
-        if not maze.colisiona(nuevo_y):
-            self.rect.y = nuevo_y.y
-        if mundo_rect:
-            self.rect.clamp_ip(mundo_rect)
-        return True
-
-    def _vagar(self, dt, maze, mundo_rect):
-        objetivo_x, objetivo_y = self.objetivo_wander
-        dx = objetivo_x - self.rect.x
-        dy = objetivo_y - self.rect.y
-        dist = math.hypot(dx, dy)
-
-        if dist < 4:
-            self._alcanzar_objetivo_wander(maze)
-            return False
-        if dist <= 0:
-            return False
-
-        mov_x, mov_y = self._desplazamiento(dx, dy, dt)
-        self._actualizar_direccion(mov_x, mov_y)
-
-        if not self._aplicar_movimiento_vagar(mov_x, mov_y, maze):
-            return False
-
-        if mundo_rect:
-            self.rect.clamp_ip(mundo_rect)
-        return True
-
-    def _alcanzar_objetivo_wander(self, maze):
-        """Elige un destino nuevo o vuelve al origen del patrullaje."""
-        if self.objetivo_wander == self.origen_wander:
-            self._generar_objetivo_wander(maze)
-            self.max_distancia = random.randint(102, 205)
-        else:
-            self.objetivo_wander = tuple(self.origen_wander)
-
-    def _aplicar_movimiento_vagar(self, mov_x, mov_y, maze):
-        """Mueve al monstruo; ante una pared vuelve al origen y se detiene."""
-        if not maze:
-            self.rect.x += mov_x
-            self.rect.y += mov_y
-            return True
-
-        nuevo_x = self.rect.move(mov_x, 0)
-        if maze.colisiona(nuevo_x):
-            self.objetivo_wander = tuple(self.origen_wander)
-            return False
-        self.rect.x = nuevo_x.x
-
-        nuevo_y = self.rect.move(0, mov_y)
-        if maze.colisiona(nuevo_y):
-            self.objetivo_wander = tuple(self.origen_wander)
-            return False
-        self.rect.y = nuevo_y.y
-        return True
+        objetivo_x, objetivo_y = self._centro_celda(
+            self.camino_patrulla[0], maze
+        )
+        movido, llego = self._mover_hacia(
+            dt, objetivo_x, objetivo_y, maze, mundo_rect
+        )
+        if llego:
+            if len(self.camino_patrulla) > 1:
+                self.camino_patrulla.pop(0)
+            else:
+                self.camino_patrulla = None
+                self._siguiente_punto_patrulla()
+        return movido
 
     def update(self, dt, jugador_rect, maze=None, mundo_rect=None):
-        """Actualiza animación y movimiento del monstruo."""
+        """Actualiza animación, patrulla o persecución del monstruo."""
         self._avanzar_animacion(dt)
 
         if self.tiempo_espera > 0:
@@ -275,8 +327,9 @@ class Monster:
         self._actualizar_persecucion(jugador_rect, maze)
 
         if self.persiguiendo and jugador_rect and maze:
+            self.camino_patrulla = None
+            self.destino_patrulla = None
             self.is_moving = self._perseguir(dt, jugador_rect, maze, mundo_rect)
-        elif maze is None or self.objetivo_wander is None:
-            self.is_moving = self._patrullar(dt, maze, mundo_rect)
         else:
-            self.is_moving = self._vagar(dt, maze, mundo_rect)
+            self.camino = None
+            self.is_moving = self._patrullar(dt, maze, mundo_rect)

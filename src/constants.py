@@ -20,6 +20,16 @@ VELOCIDAD_JUGADOR = 384
 VIDAS_INICIALES = 5
 DURACION_INVULNERABILIDAD = 1.0  # segundos
 
+# --- Monstruos ---
+VELOCIDAD_MONSTRUO_NIVEL_1 = 154
+VELOCIDAD_MONSTRUO_NIVEL_2 = int(VELOCIDAD_MONSTRUO_NIVEL_1 * 1.10)  # +10 %
+RANGO_DETECCION_NIVEL_2 = 4 * TILE_SIZE  # 4 bloques = 308 px
+PAUSA_MONSTRUO_TRAS_DANO = 0.6  # segundos detenido tras tocar al jugador
+INTERVALO_RECALCULO_CAMINO = 0.25  # segundos entre BFS de persecución
+DISTANCIA_MINIMA_SPAWN = 4 * TILE_SIZE  # frutas y monstruos lejos del spawn
+PUNTOS_PATRULLA = 3  # puntos de patrulla además del spawn
+RADIO_PATRULLA = 6  # celdas de distancia máxima para elegir la patrulla
+
 # --- Inmunidad por frutas ---
 FRUTAS_PARA_INMUNIDAD = 3
 VENTANA_INMUNIDAD = 10  # segundos para juntar las frutas

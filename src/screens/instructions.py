@@ -68,8 +68,9 @@ class InstructionsScreen:
         instrucciones = [
             "Controles: W A S D o flechas",
             "Objetivo: encuentra la salida del laberinto",
-            "Recolecta frutas para sumar puntos",
+            "Cada fruta vale 10 puntos",
             "Evita los monstruos",
+            "Junta 3 frutas en 10 s: inmunidad",
             f"Tienes {VIDAS_INICIALES} vidas por partida",
             "Completa los niveles antes del tiempo",
             "Pantalla completa o ventana: Alt + Enter",

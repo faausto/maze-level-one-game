@@ -15,6 +15,7 @@ _VOLUMENES = {
     "game_over": 0.65,
     "inmune": 0.60,
     "maze_lv1": 0.18,
+    "maze_lv2": 0.16,
     "menu_sound": 0.22,
     "menu_confirm": 0.55,
     "menu_select": 0.40,

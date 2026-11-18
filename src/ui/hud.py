@@ -1,5 +1,7 @@
 """HUD con vidas, puntaje, tiempo y nivel."""
 
+import math
+
 import pygame
 
 from src.constants import (
@@ -27,6 +29,7 @@ _Y_VALOR = 40
 _COLOR_ETIQUETA = COLOR_DORADO
 _COLOR_VALOR = COLOR_TEXTO
 _COLOR_BORDE_TEXTO = (10, 12, 8)
+_COLOR_TIEMPO_EXTRA = (150, 235, 90)
 
 _hud_fondo = None
 
@@ -78,7 +81,7 @@ def _dibujar_vidas(pantalla, vidas):
             )
 
 
-def _dibujar_estadistica(pantalla, x, etiqueta, valor):
+def _dibujar_estadistica(pantalla, x, etiqueta, valor, sufijo=None):
     texto_etiqueta = render_con_borde(
         fonts.fuente_hud_etiqueta,
         etiqueta,
@@ -97,8 +100,41 @@ def _dibujar_estadistica(pantalla, x, etiqueta, valor):
     pantalla.blit(texto_etiqueta, (x - 1, _Y_ETIQUETA - 1))
     pantalla.blit(texto_valor, (x - 1, _Y_VALOR - 1))
 
+    if sufijo:
+        texto_sufijo = render_con_borde(
+            fonts.fuente_hud_valor,
+            sufijo,
+            _COLOR_TIEMPO_EXTRA,
+            _COLOR_BORDE_TEXTO,
+            grosor=1,
+        )
+        pantalla.blit(
+            texto_sufijo,
+            (x - 1 + texto_valor.get_width() + 8, _Y_VALOR - 1),
+        )
 
-def dibujar_hud(pantalla, vidas, puntaje, tiempo_nivel, nivel_actual, inmune):
+
+_EPSILON_TIEMPO = 1e-9
+
+
+def _segundos_restantes(valor):
+    """Redondea hacia arriba absorbiendo la deriva de punto flotante."""
+    return math.ceil(max(0.0, valor - _EPSILON_TIEMPO))
+
+
+def valores_tiempo(tiempo_nivel, tiempo_extra=0):
+    """Devuelve el tiempo base y el sufijo extra tal como se muestran."""
+    valor = _segundos_restantes(tiempo_nivel)
+    sufijo = None
+    if tiempo_extra > 0:
+        valor = _segundos_restantes(tiempo_nivel - tiempo_extra)
+        sufijo = f"+{_segundos_restantes(tiempo_extra)}"
+    return valor, sufijo
+
+
+def dibujar_hud(
+    pantalla, vidas, puntaje, tiempo_nivel, nivel_actual, inmune, tiempo_extra=0
+):
     """Dibuja la barra superior con el estado de la partida."""
     pantalla.blit(_obtener_fondo_hud(), (0, 0))
 
@@ -120,9 +156,13 @@ def dibujar_hud(pantalla, vidas, puntaje, tiempo_nivel, nivel_actual, inmune):
     for x in (240, 486, 732):
         pygame.draw.line(pantalla, (72, 86, 56), (x, 24), (x, 78), 1)
 
+    valor_tiempo, sufijo_tiempo = valores_tiempo(tiempo_nivel, tiempo_extra)
+
     _dibujar_vidas(pantalla, vidas)
     _dibujar_estadistica(pantalla, _X_PUNTOS, "PUNTOS", puntaje)
-    _dibujar_estadistica(pantalla, _X_TIEMPO, "TIEMPO", int(tiempo_nivel))
+    _dibujar_estadistica(
+        pantalla, _X_TIEMPO, "TIEMPO", valor_tiempo, sufijo_tiempo
+    )
     _dibujar_estadistica(pantalla, _X_NIVEL, "NIVEL", nivel_actual + 1)
 
     if inmune:

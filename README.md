@@ -4,18 +4,30 @@ Videojuego 2D de laberinto desarrollado en Python con Pygame, donde una pequeña
 
 ## Descripción
 
-El jugador controla a un personaje dentro de un laberinto de mayor tamaño que la pantalla, recorrido con ayuda de una cámara que lo sigue en todo momento. El objetivo es alcanzar la salida de cada nivel y, finalmente, completar todos los niveles disponibles para ganar la partida. Durante el recorrido se pueden recolectar frutas de distinto valor, que suman puntos y pueden otorgar un bonus temporal de inmunidad frente a los monstruos. El puntaje final solo se registra en el ranking cuando el jugador logra la Victoria completando todos los niveles.
+El jugador controla a un personaje dentro de un laberinto de mayor tamaño que la pantalla, recorrido con ayuda de una cámara que lo sigue en todo momento. El objetivo es alcanzar la salida de cada nivel y, finalmente, completar todos los niveles disponibles para ganar la partida. Durante el recorrido se pueden recolectar frutas de distintos tipos, que suman puntos y pueden otorgar un bonus temporal de inmunidad frente a los monstruos. El puntaje final solo se registra en el ranking cuando el jugador logra la Victoria completando todos los niveles.
 
-Por ahora el juego tiene **un solo nivel** configurado, pero la lógica está preparada para agregar más.
+El juego tiene **dos niveles**: el primero de 20×13 celdas, pensado como introducción, y el segundo de 40×26 (el doble por lado), con mayor dificultad. El nivel 1 elige al azar entre 3 semillas y el nivel 2 entre 5 semillas propias. El nivel 1 tiene 5 frutas y 1 monstruo; el nivel 2 sube a 12 frutas y 5 monstruos que patrullan y persiguen al jugador cuando se acerca a 4 bloques, además de su propia música de fondo. En ambos niveles las frutas y los monstruos se ubican al azar, sin repetir celdas y lejos del spawn.
 
 ## Cómo se juega
 
 - **Movimiento:** `W`, `A`, `S`, `D` o las flechas del teclado.
 - **Pantalla completa:** `Alt + Enter` alterna entre modo ventana (1024x768) y pantalla completa.
-- **Objetivo:** recolectar frutas y llegar a la salida del nivel actual. Al ser el único nivel, la salida otorga la Victoria.
+- **Objetivo:** recolectar frutas y llegar a la salida. Al salir del nivel 1 se pasa directo al nivel 2; la Victoria es recién al completar el nivel 2.
 - **Vidas:** el personaje comienza con 5 vidas; se pierde una al ser tocado por un monstruo (salvo inmunidad o invulnerabilidad temporal).
-- **Tiempo:** cada nivel tiene un límite de tiempo en cuenta regresiva; si se agota, la partida termina en Game Over.
+- **Tiempo:** cada nivel tiene un límite en cuenta regresiva (35 s el primero y 75 s el segundo); si se agota, la partida termina en Game Over. Los segundos que sobren del nivel 1 se suman al tiempo inicial del nivel 2, y los que queden al final se usan para el bonus.
 - **Fin de partida:** Victoria al completar todos los niveles, o Game Over al perder las 5 vidas o al agotarse el tiempo.
+
+## Nivel 2: más dificultad
+
+El nivel 2 está pensado para que la dificultad no dependa de correr por los bordes, sino de resolver el laberinto:
+
+- **Laberinto más grande:** 40×26 celdas (3080×2002 px), con 5 semillas diseñadas a mano. El borde exterior es de un solo bloque, no hay pasillos 2×2 y la salida `E` se alcanza desde arriba, igual que en el nivel 1.
+- **Cruce central obligatorio:** los pasillos perimetrales están segmentados con muros y puertas aisladas. Ninguna ruta puede llegar a la salida usando solo el anillo exterior; hay que atravesar el centro del laberinto.
+- **12 frutas:** todas valen 10 puntos. Juntar 3 frutas en 10 segundos activa 5 segundos de inmunidad.
+- **5 monstruos con patrulla y persecución:** cada uno recibe un circuito de puntos libres cercano a su spawn y lo recorre con BFS, sin atravesar paredes. Cuando detectan al jugador a 4 bloques (308 px), cambian a persecución, recalculan el camino cada 0,25 s y vuelven a la patrulla al salir del área. Se mueven un 10 % más rápido que los del nivel 1 y se detienen 0,6 s después de golpear.
+- **Posiciones aleatorias:** las frutas y los monstruos se eligen entre celdas libres, sin repetir y a una distancia mínima de 4 bloques del spawn. Los monstruos también evitan aparecer cerca de la salida.
+- **Tiempo y transición:** el nivel 2 arranca con 75 s base más los segundos sobrantes del nivel 1. El HUD muestra el extra acumulado (por ejemplo, `75 +10` si sobraron 10 s) y la victoria final solo se obtiene al terminarlo.
+- **Audio propio:** música `maze_lv2.wav`, además de los efectos de fruta, daño, inmunidad y pasos.
 
 ## Funcionalidades
 
@@ -34,14 +46,19 @@ Por ahora el juego tiene **un solo nivel** configurado, pero la lógica está pr
 - [x] Crear salida del laberinto para finalizar nivel, con pantalla final de victoria/game over.
 - [x] Agregar tiempo limite para escapar del laberinto.
 - [x] Condición de Victoria únicamente al completar todos los niveles.
+- [x] Nivel 2 con 5 semillas de 40×26 y cruce central obligatorio.
+- [x] Transición al nivel 2 conservando el tiempo sobrante del nivel 1.
 
 **FASE 4**
-- [x] Frutas coleccionables de distintos tipos, con distinto puntaje cada una.
+- [x] Frutas coleccionables de distintos tipos, todas de 10 puntos.
 - [x] Bonus temporal de inmunidad al recolectar frutas.
+- [x] 12 frutas en el nivel 2, con bonus por juntar 3 en 10 segundos.
 
 **FASE 5**
-- [x] Monstruos con patrones de movimiento predefinidos (y área de persecución desde el segundo nivel).
+- [x] Monstruos con patrullas por celdas y área de persecución desde el segundo nivel.
 - [x] Sistema de 5 vidas con período de invulnerabilidad tras cada impacto.
+- [x] 5 monstruos en el nivel 2 con patrulla BFS, persecución y rango de detección de 4 bloques.
+- [x] Frutas y monstruos en posiciones aleatorias, sin repetir y lejos del spawn.
 
 **FASE 6**
 - [x] Bonus de puntos por Victoria (vidas restantes y tiempo sobrante).
@@ -121,7 +138,7 @@ Después ejecutalos desde la raíz del proyecto:
 python -m pytest -v
 ```
 
-Los tests comprueban, entre otras cosas, que las semillas tengan inicio y salida alcanzable, que las colisiones del laberinto funcionen, que el bonus use el tiempo sobrante y que el ranking guarde bien los puntajes. No afectan al juego: solo se ejecutan cuando corrés `pytest`.
+Los tests comprueban, entre otras cosas, que las semillas tengan inicio y salida alcanzable y que el tiempo alcance para recorrer el camino más corto, que las colisiones del laberinto funcionen, que el bonus use el tiempo sobrante, que el ranking guarde bien los puntajes y que el nivel 2 tenga sus 5 semillas, 12 frutas y 5 monstruos con rango de persecución. También verifican que las posiciones de frutas y monstruos sean únicas y estén lejos del spawn en ambos niveles, que las patrullas usen celdas libres, que el HUD muestre `75 +10` desde el inicio, que el anillo perimetral no lleve a la salida, que todas las rutas crucen el centro y que no haya pasillos 2×2. No afectan al juego: solo se ejecutan cuando corrés `pytest`.
 
 ## Para desarrolladores
 
@@ -174,7 +191,7 @@ Los sonidos y la música provienen de [Freesound](https://freesound.org/). Cada 
 | Archivo | Uso | Autor | Licencia | Fuente |
 |---|---|---|---|---|
 | `maze_lv1.wav` | Música de fondo en partida ("8 Bit Adventure Theme (intro)") | TheLastOneOnEarth | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [Freesound](https://freesound.org/people/TheLastOneOnEarth/sounds/732429/) |
-| `maze_lv2.wav` | Música alternativa ("Electric Guitar Loop 1_150bpm") | CAT-FOX_ALEX | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Freesound](https://freesound.org/people/CAT-FOX_ALEX/sounds/874737/) |
+| `maze_lv2.wav` | Música de fondo del nivel 2 ("Electric Guitar Loop 1_150bpm") | CAT-FOX_ALEX | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Freesound](https://freesound.org/people/CAT-FOX_ALEX/sounds/874737/) |
 | `menu_sound.wav` | Música del menú ("Arcade Intro #2") | tyops | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [Freesound](https://freesound.org/people/tyops/sounds/338361/) |
 | `success_level.mp3` | Sonido al superar un nivel ("Electronic Victory Sound") | yokomatsuko | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Freesound](https://freesound.org/people/yokomatsuko/sounds/856038/) |
 | `final_victory.mp3` | Música de victoria final ("Triumphant success") | mokasza | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [Freesound](https://freesound.org/people/mokasza/sounds/810330/) |

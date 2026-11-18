@@ -12,10 +12,13 @@ from src.constants import (
     COLOR_JUGADOR,
     COLOR_MONSTRUO,
     COLOR_SALIDA,
+    DISTANCIA_MINIMA_SPAWN,
     DURACION_INMUNIDAD,
     DURACION_INVULNERABILIDAD,
     FRUTAS_PARA_INMUNIDAD,
     HUD_HEIGHT,
+    PUNTOS_PATRULLA,
+    RADIO_PATRULLA,
     VELOCIDAD_JUGADOR,
     VENTANA_INMUNIDAD,
 )
@@ -27,6 +30,7 @@ from src.scoring import calcular_bonus
 from src.ui.hud import dibujar_hud
 from src.world.camera import Camera
 from src.world.maze import Maze
+from src.world.placement import elegir_posiciones, generar_patrulla
 from src.world.seeds import (
     FRUTAS_POR_NIVEL,
     MONSTRUOS_POR_NIVEL,
@@ -49,6 +53,8 @@ class GameScreen:
         self.monstruos = []
         self.salida = None
         self.tiempo_nivel = 0
+        self.tiempo_base = 0
+        self.tiempo_extra = 0
         self.frutas_recolectadas_ventana = []
         self.inmune = False
         self.tiempo_inmunidad = 0
@@ -65,7 +71,7 @@ class GameScreen:
             return EstadoJuego.MENU
         return None
 
-    def cargar_nivel(self, nivel):
+    def cargar_nivel(self, nivel, tiempo_extra=0):
         """Prepara el laberinto, el jugador, las frutas y los monstruos."""
         self.maze = Maze(nivel)
         self.camera = Camera(
@@ -76,99 +82,83 @@ class GameScreen:
         )
         self._mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
 
-        posiciones = self.maze.obtener_posiciones_libres()
         self.player = Player(
             self.maze.spawn.centerx - 25,
             self.maze.spawn.centery - 25,
         )
 
-        disponibles = self._posiciones_disponibles(posiciones)
-        self.frutas = self._crear_frutas(nivel, disponibles)
-        self.monstruos = self._crear_monstruos(
-            nivel, disponibles[len(self.frutas):]
+        posiciones_frutas, posiciones_monstruos = (
+            self._elegir_posiciones_nivel(nivel)
         )
-        self._iniciar_monstruos()
-        self._configurar_salida(nivel)
+        self.frutas = self._crear_frutas(nivel, posiciones_frutas)
+        self.monstruos = self._crear_monstruos(nivel, posiciones_monstruos)
+        self._configurar_salida(nivel, tiempo_extra)
         self._reiniciar_temporizadores()
         self.camera.update(self.player.rect)
 
-    def _posiciones_disponibles(self, posiciones):
-        """Mezcla las celdas libres que pueden usarse para entidades."""
-        disponibles = list(posiciones)
-        random.shuffle(disponibles)
-        return disponibles
+    def _elegir_posiciones_nivel(self, nivel):
+        """Sortea posiciones únicas y lejos del spawn para las entidades."""
+        disponibles = self.maze.obtener_posiciones_libres()
+        evitar = [self.maze.spawn.center]
+        posiciones_frutas = elegir_posiciones(
+            disponibles,
+            len(FRUTAS_POR_NIVEL[nivel]),
+            evitar,
+            DISTANCIA_MINIMA_SPAWN,
+        )
+        posiciones_monstruos = elegir_posiciones(
+            disponibles,
+            len(MONSTRUOS_POR_NIVEL[nivel]),
+            [*evitar, self.maze.salida.center],
+            DISTANCIA_MINIMA_SPAWN,
+        )
+        return posiciones_frutas, posiciones_monstruos
 
-    def _crear_frutas(self, nivel, disponibles):
-        """Crea las frutas del nivel en celdas libres sin repetir."""
-        frutas = []
-        for i, datos in enumerate(FRUTAS_POR_NIVEL[nivel]):
-            if i < len(disponibles):
-                x, y = disponibles[i]
-                frutas.append(
-                    Fruit(
-                        x - 16,
-                        y - 16,
-                        tipo=datos["tipo"],
-                        color=datos["color"],
-                        puntos=datos["puntos"],
-                    )
-                )
-            else:
-                frutas.append(
-                    Fruit(
-                        datos["x"],
-                        datos["y"],
-                        tipo=datos["tipo"],
-                        color=datos["color"],
-                        puntos=datos["puntos"],
-                    )
-                )
-        return frutas
+    def _crear_frutas(self, nivel, posiciones):
+        """Crea las frutas del nivel en las posiciones sorteadas."""
+        return [
+            Fruit(
+                x - 16,
+                y - 16,
+                tipo=datos["tipo"],
+                color=datos["color"],
+                puntos=datos["puntos"],
+            )
+            for datos, (x, y) in zip(
+                FRUTAS_POR_NIVEL[nivel], posiciones
+            )
+        ]
 
-    def _crear_monstruos(self, nivel, disponibles):
-        """Crea los monstruos del nivel en celdas libres sin repetir."""
+    def _crear_monstruos(self, nivel, posiciones):
+        """Crea los monstruos con una patrulla local a su posición."""
         monstruos = []
-        for idx, datos in enumerate(MONSTRUOS_POR_NIVEL[nivel]):
-            if idx < len(disponibles):
-                x, y = disponibles[idx]
-                monstruos.append(
-                    Monster(
-                        x - datos["ancho"] // 2,
-                        y - datos["alto"] // 2,
-                        datos["ancho"],
-                        datos["alto"],
-                        datos["puntos"],
-                        datos["velocidad"],
-                        datos.get("rango_deteccion", 0),
-                    )
+        for datos, (x, y) in zip(MONSTRUOS_POR_NIVEL[nivel], posiciones):
+            celda = (x // self.maze.tile_size, y // self.maze.tile_size)
+            patrulla = generar_patrulla(
+                self.maze,
+                celda,
+                PUNTOS_PATRULLA,
+                RADIO_PATRULLA,
+            )
+            monstruos.append(
+                Monster(
+                    x - datos["ancho"] // 2,
+                    y - datos["alto"] // 2,
+                    datos["ancho"],
+                    datos["alto"],
+                    patrulla,
+                    datos["velocidad"],
+                    datos.get("rango_deteccion", 0),
                 )
-            else:
-                monstruos.append(
-                    Monster(
-                        datos["x"],
-                        datos["y"],
-                        datos["ancho"],
-                        datos["alto"],
-                        datos["puntos"],
-                        datos["velocidad"],
-                        datos.get("rango_deteccion", 0),
-                    )
-                )
+            )
         return monstruos
 
-    def _iniciar_monstruos(self):
-        """Activa el recorrido inicial de cada monstruo."""
-        for monstruo in self.monstruos:
-            monstruo.objetivo_wander = None
-            monstruo.origen_wander = (monstruo.rect.x, monstruo.rect.y)
-            monstruo.max_distancia = random.randint(102, 205)
-            if self.maze:
-                monstruo._generar_objetivo_wander(self.maze)
-
-    def _configurar_salida(self, nivel):
-        """Toma la salida definida en el mapa y fija el tiempo del nivel."""
+    def _configurar_salida(self, nivel, tiempo_extra=0):
+        """Toma la salida del mapa y fija el tiempo base más lo acumulado."""
         self.salida = self.maze.salida
-        self.tiempo_nivel = NIVELES[nivel]["tiempo"]
+        self.tiempo_base = NIVELES[nivel]["tiempo"]
+        self.tiempo_extra = max(0.0, float(tiempo_extra))
+        self.tiempo_nivel = self.tiempo_base + self.tiempo_extra
 
     def _reiniciar_temporizadores(self):
         """Reinicia los efectos temporales al empezar un nivel."""
@@ -405,6 +395,9 @@ class GameScreen:
             if self.player.rect.colliderect(monstruo.rect):
                 juego.vidas = max(0, juego.vidas - 1)
                 juego.audio.reproducir("damage")
+                # Solo los monstruos que persiguen se detienen tras golpear.
+                if monstruo.rango_deteccion > 0:
+                    monstruo.pausar_tras_dano()
                 self.invulnerable = True
                 self.tiempo_invulnerabilidad = DURACION_INVULNERABILIDAD
                 if juego.vidas <= 0:
@@ -420,8 +413,8 @@ class GameScreen:
             return
 
         if juego.nivel_actual < len(NIVELES) - 1:
-            juego.nivel_actual += 1
-            self.cargar_nivel(juego.nivel_actual)
+            tiempo_extra = max(0, int(self.tiempo_nivel))
+            juego.cargar_nivel(juego.nivel_actual + 1, tiempo_extra)
             return
 
         bonus = calcular_bonus(juego.vidas, self.tiempo_nivel)
@@ -445,8 +438,11 @@ class GameScreen:
         self._actualizar_temporizadores(dt)
 
         self.tiempo_nivel -= dt
+        if self.tiempo_extra > 0:
+            self.tiempo_extra = max(0.0, self.tiempo_extra - dt)
         if self.tiempo_nivel <= 0:
             self.tiempo_nivel = 0
+            self.tiempo_extra = 0
             return self._terminar_partida(juego)
 
         if self._mover_jugador(dt):
@@ -480,6 +476,7 @@ class GameScreen:
             self.tiempo_nivel,
             juego.nivel_actual,
             self.inmune,
+            self.tiempo_extra,
         )
 
     def _dibujar_salida(self, pantalla):

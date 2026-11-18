@@ -103,10 +103,11 @@ class Juego:
         self.mensaje_resultado = ""
         self.cargar_nivel(0)
 
-    def cargar_nivel(self, nivel):
-        """Carga un nivel en la pantalla de juego."""
+    def cargar_nivel(self, nivel, tiempo_extra=0):
+        """Carga un nivel, suma el tiempo ganado y actualiza la música."""
         self.nivel_actual = nivel
-        self.pantallas[EstadoJuego.JUEGO].cargar_nivel(nivel)
+        self.pantallas[EstadoJuego.JUEGO].cargar_nivel(nivel, tiempo_extra)
+        self._actualizar_audio()
 
     def cargar_ranking(self):
         """Vuelve a leer el ranking desde la base de datos."""
@@ -164,7 +165,8 @@ class Juego:
 
     def _actualizar_audio(self):
         if self.estado == EstadoJuego.JUEGO:
-            self.audio.reproducir_musica("maze_lv1")
+            musica = "maze_lv2" if self.nivel_actual else "maze_lv1"
+            self.audio.reproducir_musica(musica)
         else:
             self.audio.detener_pasos()
             self.audio.reproducir_musica("menu_sound")
