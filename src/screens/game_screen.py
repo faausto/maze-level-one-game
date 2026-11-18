@@ -31,7 +31,6 @@ from src.world.seeds import (
     FRUTAS_POR_NIVEL,
     MONSTRUOS_POR_NIVEL,
     NIVELES,
-    SALIDAS,
 )
 
 ENTRADA_SALIDA_MINIMA = 0.70
@@ -78,8 +77,10 @@ class GameScreen:
         self._mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
 
         posiciones = self.maze.obtener_posiciones_libres()
-        spawn = posiciones[0] if posiciones else (64, 64)
-        self.player = Player(spawn[0] - 25, spawn[1] - 25)
+        self.player = Player(
+            self.maze.spawn.centerx - 25,
+            self.maze.spawn.centery - 25,
+        )
 
         disponibles = self._posiciones_disponibles(posiciones)
         self.frutas = self._crear_frutas(nivel, disponibles)
@@ -93,7 +94,7 @@ class GameScreen:
 
     def _posiciones_disponibles(self, posiciones):
         """Mezcla las celdas libres que pueden usarse para entidades."""
-        disponibles = posiciones[1:] if len(posiciones) > 1 else posiciones[:]
+        disponibles = list(posiciones)
         random.shuffle(disponibles)
         return disponibles
 
@@ -165,12 +166,8 @@ class GameScreen:
                 monstruo._generar_objetivo_wander(self.maze)
 
     def _configurar_salida(self, nivel):
-        """Crea la salida, abre su zona y fija el tiempo del nivel."""
-        salida = SALIDAS[nivel]
-        self.salida = pygame.Rect(
-            salida["x"], salida["y"], salida["ancho"], salida["alto"]
-        )
-        self.maze.abrir_zona(self.salida)
+        """Toma la salida definida en el mapa y fija el tiempo del nivel."""
+        self.salida = self.maze.salida
         self.tiempo_nivel = NIVELES[nivel]["tiempo"]
 
     def _reiniciar_temporizadores(self):

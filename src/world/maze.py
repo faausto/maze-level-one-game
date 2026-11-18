@@ -32,9 +32,24 @@ class Maze:
         self.mapa = list(SEMILLAS[nivel][semilla_idx])
         self.ancho = len(self.mapa[0]) * self.tile_size
         self.alto = len(self.mapa) * self.tile_size
+        self.spawn = self._buscar_celda("S")
+        self.salida = self._buscar_celda("E")
 
         if Maze._grass_tile is None or Maze._rock_tile is None:
             self._cargar_texturas()
+
+    def _buscar_celda(self, caracter):
+        """Devuelve el rectángulo de la primera celda con el caracter dado."""
+        for y, fila in enumerate(self.mapa):
+            x = fila.find(caracter)
+            if x != -1:
+                return pygame.Rect(
+                    x * self.tile_size,
+                    y * self.tile_size,
+                    self.tile_size,
+                    self.tile_size,
+                )
+        raise ValueError(f"La semilla no tiene la celda '{caracter}'")
 
     def _cargar_texturas(self):
         try:
@@ -66,20 +81,6 @@ class Maze:
                     py = y * self.tile_size + self.tile_size // 2
                     posiciones.append((px, py))
         return posiciones
-
-    def abrir_zona(self, rect):
-        """Convierte en camino todas las celdas que toca el rectángulo."""
-        tile_size = self.tile_size
-        izquierda = max(0, rect.left // tile_size)
-        derecha = min(len(self.mapa[0]) - 1, (rect.right - 1) // tile_size)
-        arriba = max(0, rect.top // tile_size)
-        abajo = min(len(self.mapa) - 1, (rect.bottom - 1) // tile_size)
-
-        for y in range(arriba, abajo + 1):
-            fila = list(self.mapa[y])
-            for x in range(izquierda, derecha + 1):
-                fila[x] = "0"
-            self.mapa[y] = "".join(fila)
 
     def colisiona(self, rect):
         """Indica si el rectángulo se superpone con alguna pared."""
