@@ -93,12 +93,25 @@ El nivel 2 está pensado para que la dificultad no dependa de correr por los bor
 
 ## Cómo ejecutar el juego
 
-### Requisitos
+### Desde el ejecutable (recomendado, sin instalar nada)
+
+- [Descargar `MazeLevelOneGame.exe` (v1.0.0)](https://github.com/faausto/maze-level-one-game/releases/download/v1.0.0/MazeLevelOneGame.exe)
+- [Ver todas las versiones](https://github.com/faausto/maze-level-one-game/releases)
+
+Es un único archivo para **Windows 10/11 de 64 bits**: incluye Python, Pygame, imágenes y sonidos. No hace falta clonar el repo, instalar Python ni descomprimir nada; guardalo donde quieras y hacé doble clic.
+
+El ranking se guarda en `%APPDATA%\MazeLevelOneGame\ranking.db` y los errores en `%APPDATA%\MazeLevelOneGame\juego.log`. Al estar fuera de la carpeta temporal del ejecutable, el puntaje se conserva al cerrar y reabrir el juego.
+
+> **Windows 11 con Control Inteligente de Aplicaciones activo:** como el `.exe` no está firmado, Windows puede bloquearlo. Si ves ese aviso, andá a *Configuración → Privacidad y seguridad → Seguridad de Windows → Control de aplicaciones y explorador* y desactivá *Control Inteligente de Aplicaciones*. Si en cambio aparece *Más información*, usá *Ejecutar de todos modos*.
+
+### Desde el código fuente
+
+#### Requisitos
 
 - Python 3.10 o superior.
 - Pygame (última versión estable).
 
-### Instrucciones
+#### Instrucciones
 
 ```bash
 # Clonar el repositorio
@@ -140,6 +153,17 @@ python -m pytest -v
 
 Los tests comprueban, entre otras cosas, que las semillas tengan inicio y salida alcanzable y que el tiempo alcance para recorrer el camino más corto, que las colisiones del laberinto funcionen, que el bonus use el tiempo sobrante, que el ranking guarde bien los puntajes y que el nivel 2 tenga sus 5 semillas, 12 frutas y 5 monstruos con rango de persecución. También verifican que las posiciones de frutas y monstruos sean únicas y estén lejos del spawn en ambos niveles, que las patrullas usen celdas libres, que el HUD muestre `75 +10` desde el inicio, que el anillo perimetral no lleve a la salida, que todas las rutas crucen el centro y que no haya pasillos 2×2. No afectan al juego: solo se ejecutan cuando corrés `pytest`.
 
+## Cómo generar el ejecutable
+
+Solo hace falta en Windows, con Python instalado:
+
+```bash
+pip install -r requirements-build.txt
+.\build_exe.ps1
+```
+
+El resultado queda en `dist/MazeLevelOneGame.exe` (carpeta ignorada por git; el binario se distribuye por GitHub Releases). Toda la configuración está en `MazeLevelOneGame.spec`: un solo archivo, sin consola, sin UPX, con los assets incluidos y el icono generado desde `assets/images/background/menu_background.png`.
+
 ## Para desarrolladores
 
 Revisar el estilo y los imports con `ruff`:
@@ -158,17 +182,21 @@ maze-level-one-game/
 ├── README.md
 ├── requirements.txt          # Dependencias del juego
 ├── requirements-dev.txt      # Dependencias de desarrollo (pytest, ruff)
+├── requirements-build.txt    # Dependencias para generar el .exe
+├── MazeLevelOneGame.spec     # Configuración de PyInstaller
+├── build_exe.ps1             # Script de compilación del ejecutable
 ├── run.py                    # Punto de entrada
 ├── docs/
 │   ├── documentacion.md       # Documentación completa del juego
 │   └── diagrama_flujo.md      # Diagrama de flujo de pantallas
 ├── assets/
+│   ├── icon.ico              # Icono del ejecutable
 │   ├── images/                # Sprites, fondos, iconos
 │   ├── sounds/                # Efectos y música
 │   └── fonts/                 # Fuentes de texto
 ├── src/                       # Código fuente del juego
 ├── tests/                     # Tests automáticos con pytest
-└── database/                  # Base de datos SQLite (se genera al jugar)
+└── database/                  # Base de datos SQLite (se genera al jugar; en el exe va a %APPDATA%)
 ```
 
 ## Tecnologías usadas

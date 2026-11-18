@@ -10,6 +10,9 @@ venv/
 Thumbs.db
 # Base de datos (se genera automáticamente)
 database/*.db
+# Build de PyInstaller
+build/
+dist/
 # Archivos del editor
 .vscode/
 .idea/

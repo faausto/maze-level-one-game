@@ -1,13 +1,28 @@
 """Constantes de configuración y rutas de assets del proyecto."""
 
+import os
+import sys
 from pathlib import Path
 
 # --- Rutas ---
 BASE_DIR = Path(__file__).resolve().parent.parent
-ASSETS_DIR = BASE_DIR / "assets"
+CONGELADO = getattr(sys, "frozen", False)
+
+if CONGELADO:
+    # En el exe de PyInstaller los assets se extraen a una carpeta temporal.
+    RECURSOS_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
+    DATOS_USUARIO_DIR = (
+        Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+        / "MazeLevelOneGame"
+    )
+else:
+    RECURSOS_DIR = BASE_DIR
+    DATOS_USUARIO_DIR = BASE_DIR / "database"
+
+ASSETS_DIR = RECURSOS_DIR / "assets"
 IMAGES_DIR = ASSETS_DIR / "images"
 SOUNDS_DIR = ASSETS_DIR / "sounds"
-DATABASE_DIR = BASE_DIR / "database"
+DATABASE_DIR = DATOS_USUARIO_DIR
 
 # --- Pantalla ---
 ANCHO_PANTALLA, ALTO_PANTALLA = 1024, 768
