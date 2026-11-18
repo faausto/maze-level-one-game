@@ -1,11 +1,12 @@
-import os
+"""Música de fondo y efectos de sonido del juego."""
+
+import logging
+
 import pygame
 
-_DIRECTORIO_SONIDOS = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "assets",
-    "sounds",
-)
+from src.constants import SOUNDS_DIR
+
+logger = logging.getLogger(__name__)
 
 _VOLUMENES = {
     "collect": 0.55,
@@ -25,31 +26,32 @@ _sonidos = {}
 
 
 class Audio:
+    """Carga y reproduce la música y los efectos de sonido del juego."""
+
     def __init__(self):
         self.disponible = False
         self.musica_actual = None
-        self.canal_musica = None
         self.canal_pasos = None
 
         try:
             if pygame.mixer.get_init() is None:
                 pygame.mixer.init()
-        except pygame.error:
+        except pygame.error as error:
+            logger.warning("Audio no disponible: %s", error)
             return
 
         if pygame.mixer.get_init() is None:
             return
 
         pygame.mixer.set_num_channels(16)
-        pygame.mixer.set_reserved(2)
-        self.canal_musica = pygame.mixer.Channel(0)
-        self.canal_pasos = pygame.mixer.Channel(1)
+        pygame.mixer.set_reserved(1)
+        self.canal_pasos = pygame.mixer.Channel(0)
         self.disponible = True
 
     def _ruta_sonido(self, nombre):
         for extension in (".wav", ".ogg", ".mp3"):
-            ruta = os.path.join(_DIRECTORIO_SONIDOS, nombre + extension)
-            if os.path.exists(ruta):
+            ruta = SOUNDS_DIR / f"{nombre}{extension}"
+            if ruta.exists():
                 return ruta
         return None
 
@@ -62,15 +64,16 @@ class Audio:
             ruta = self._ruta_sonido(nombre)
             if ruta:
                 try:
-                    sonido = pygame.mixer.Sound(ruta)
+                    sonido = pygame.mixer.Sound(str(ruta))
                     sonido.set_volume(_VOLUMENES.get(nombre, 0.5))
-                except pygame.error as e:
-                    print(f"Error cargando sonido {nombre}: {e}")
+                except pygame.error as error:
+                    logger.warning("No se pudo cargar el sonido %s: %s", nombre, error)
 
         _sonidos[nombre] = sonido
         return sonido
 
     def reproducir(self, nombre):
+        """Reproduce un efecto corto (cargado una sola vez en memoria)."""
         if not self.disponible:
             return
         sonido = self._obtener(nombre)
@@ -78,6 +81,7 @@ class Audio:
             sonido.play()
 
     def reproducir_paso(self):
+        """Reproduce el sonido de paso si el canal de pasos está libre."""
         if not self.disponible:
             return
         if self.canal_pasos.get_busy():
@@ -91,11 +95,28 @@ class Audio:
             self.canal_pasos.stop()
 
     def reproducir_musica(self, nombre):
+        """Reproduce la música en loop usando streaming desde el disco."""
         if not self.disponible or self.musica_actual == nombre:
             return
 
+        ruta = self._ruta_sonido(nombre)
+        if not ruta:
+            logger.warning("No se encontró la música: %s", nombre)
+            self.musica_actual = nombre
+            return
+
+        try:
+            pygame.mixer.music.load(str(ruta))
+            pygame.mixer.music.set_volume(_VOLUMENES.get(nombre, 0.5))
+            pygame.mixer.music.play(loops=-1, fade_ms=600)
+        except pygame.error as error:
+            logger.warning("No se pudo reproducir la música %s: %s", nombre, error)
+
         self.musica_actual = nombre
-        self.canal_musica.stop()
-        sonido = self._obtener(nombre)
-        if sonido:
-            self.canal_musica.play(sonido, loops=-1, fade_ms=600)
+
+    def detener_musica(self, fade_ms=500):
+        """Detiene la música actual con un fundido de salida."""
+        if not self.disponible:
+            return
+        pygame.mixer.music.fadeout(fade_ms)
+        self.musica_actual = None

@@ -1,14 +1,16 @@
+"""HUD con vidas, puntaje, tiempo y nivel."""
+
 import pygame
+
 from src.constants import (
     ANCHO_PANTALLA,
     COLOR_DORADO,
     COLOR_TEXTO,
     HUD_HEIGHT,
+    VIDAS_INICIALES,
 )
 from src.ui import fonts
 from src.ui.common import render_con_borde
-
-MAX_VIDAS = 5
 
 _ANCHO_BARRA = 30
 _ALTO_BARRA = 22
@@ -51,9 +53,9 @@ def _obtener_fondo_hud():
 
 
 def _dibujar_vidas(pantalla, vidas):
-    vidas = max(0, min(MAX_VIDAS, int(vidas)))
+    vidas = max(0, min(VIDAS_INICIALES, int(vidas)))
 
-    for i in range(MAX_VIDAS):
+    for i in range(VIDAS_INICIALES):
         x = _X_VIDAS + i * (_ANCHO_BARRA + _SEPARACION_BARRA)
         barra = pygame.Rect(x, _Y_BARRA, _ANCHO_BARRA, _ALTO_BARRA)
 
@@ -97,6 +99,7 @@ def _dibujar_estadistica(pantalla, x, etiqueta, valor):
 
 
 def dibujar_hud(pantalla, vidas, puntaje, tiempo_nivel, nivel_actual, inmune):
+    """Dibuja la barra superior con el estado de la partida."""
     pantalla.blit(_obtener_fondo_hud(), (0, 0))
 
     pygame.draw.line(

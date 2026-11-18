@@ -1,38 +1,47 @@
-import pygame
-import random
+"""Pantalla de juego: movimiento, frutas, monstruos y salida del nivel."""
+
 import math
+import random
+
+import pygame
+
 from src.constants import (
+    ALTO_PANTALLA,
+    ANCHO_PANTALLA,
     COLOR_FONDO,
-    COLOR_OBJETIVO,
     COLOR_JUGADOR,
     COLOR_MONSTRUO,
-    COLOR_TITULO,
-    ANCHO_PANTALLA,
-    ALTO_PANTALLA,
+    COLOR_SALIDA,
+    DURACION_INMUNIDAD,
+    DURACION_INVULNERABILIDAD,
+    FRUTAS_PARA_INMUNIDAD,
     HUD_HEIGHT,
-    TILE_SIZE,
     VELOCIDAD_JUGADOR,
+    VENTANA_INMUNIDAD,
+)
+from src.entities.fruit import Fruit
+from src.entities.monster import Monster
+from src.entities.player import Player
+from src.estados import EstadoJuego
+from src.scoring import calcular_bonus
+from src.ui.hud import dibujar_hud
+from src.world.camera import Camera
+from src.world.maze import Maze
+from src.world.seeds import (
     FRUTAS_POR_NIVEL,
     MONSTRUOS_POR_NIVEL,
-    SALIDAS,
     NIVELES,
+    SALIDAS,
 )
-from src.ui import fonts
-from src.world.maze import Maze
-from src.world.camera import Camera
-from src.entities.player import Player
-from src.entities.monster import Monster
-from src.entities.fruit import Fruit
-from src.ui.hud import dibujar_hud
 
 ENTRADA_SALIDA_MINIMA = 0.70
-PUNTOS_POR_FRUTA = 10
-PUNTOS_POR_VIDA = 20
-PUNTOS_POR_SEGUNDO = 2
 DURACION_EFECTO_VICTORIA = 1.4
+INTERVALO_PASO = 0.30
 
 
 class GameScreen:
+    """Ejecuta la partida y dibuja el laberinto y sus entidades."""
+
     def __init__(self):
         self.maze = None
         self.camera = None
@@ -49,75 +58,123 @@ class GameScreen:
         self.efecto_victoria = None
         self._capa_efecto = None
         self.tiempo_paso = 0.0
+        self._mundo_rect = pygame.Rect(0, 0, 0, 0)
 
-    def cargar_nivel(self, nivel, juego):
+    def handle_event(self, game, event):
+        """Vuelve al menú al presionar ESC; el resto lo resuelve el bucle."""
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            return EstadoJuego.MENU
+        return None
+
+    def cargar_nivel(self, nivel):
+        """Prepara el laberinto, el jugador, las frutas y los monstruos."""
         self.maze = Maze(nivel)
-        self.camera = Camera(self.maze.ancho, self.maze.alto, ANCHO_PANTALLA, ALTO_PANTALLA)
-        mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
-        posiciones = self.maze.obtener_posiciones_libres()
+        self.camera = Camera(
+            self.maze.ancho,
+            self.maze.alto,
+            ANCHO_PANTALLA,
+            ALTO_PANTALLA,
+        )
+        self._mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
 
+        posiciones = self.maze.obtener_posiciones_libres()
         spawn = posiciones[0] if posiciones else (64, 64)
         self.player = Player(spawn[0] - 25, spawn[1] - 25)
 
-        objetivo_pos = posiciones[1] if len(posiciones) > 1 else (spawn[0] + 128, spawn[1])
-        juego.objetivo = pygame.Rect(objetivo_pos[0] - 25, objetivo_pos[1] - 25, 51, 51)
+        disponibles = self._posiciones_disponibles(posiciones)
+        self.frutas = self._crear_frutas(nivel, disponibles)
+        self.monstruos = self._crear_monstruos(
+            nivel, disponibles[len(self.frutas):]
+        )
+        self._iniciar_monstruos()
+        self._configurar_salida(nivel)
+        self._reiniciar_temporizadores()
+        self.camera.update(self.player.rect)
 
-        self.frutas = []
-        fruta_data = FRUTAS_POR_NIVEL[nivel]
-        posiciones_disponibles = posiciones[2:] if len(posiciones) > 2 else posiciones[:]
-        random.shuffle(posiciones_disponibles)
-        for i, f in enumerate(fruta_data):
-            if i < len(posiciones_disponibles):
-                pos = posiciones_disponibles[i]
-                self.frutas.append(Fruit(pos[0] - 16, pos[1] - 16, tipo=f["tipo"], color=f["color"], puntos=f["puntos"]))
-            else:
-                self.frutas.append(Fruit(f["x"], f["y"], tipo=f["tipo"], color=f["color"], puntos=f["puntos"]))
+    def _posiciones_disponibles(self, posiciones):
+        """Mezcla las celdas libres que pueden usarse para entidades."""
+        disponibles = posiciones[1:] if len(posiciones) > 1 else posiciones[:]
+        random.shuffle(disponibles)
+        return disponibles
 
-        self.monstruos = []
-        posiciones_libres = self.maze.obtener_posiciones_libres()
-        if len(posiciones_libres) > 6:
-            monster_positions = posiciones_libres[len(posiciones_libres) // 2:len(posiciones_libres) // 2 + 6]
-        else:
-            monster_positions = posiciones_libres[2:6] if len(posiciones_libres) > 2 else []
-        random.shuffle(monster_positions)
-        for idx, m in enumerate(MONSTRUOS_POR_NIVEL[nivel]):
-            if idx < len(monster_positions):
-                pos = monster_positions[idx]
-                self.monstruos.append(
-                    Monster(
-                        pos[0] - m["ancho"] // 2,
-                        pos[1] - m["alto"] // 2,
-                        m["ancho"],
-                        m["alto"],
-                        m["puntos"],
-                        m["velocidad"],
-                        m.get("rango_deteccion", 0),
+    def _crear_frutas(self, nivel, disponibles):
+        """Crea las frutas del nivel en celdas libres sin repetir."""
+        frutas = []
+        for i, datos in enumerate(FRUTAS_POR_NIVEL[nivel]):
+            if i < len(disponibles):
+                x, y = disponibles[i]
+                frutas.append(
+                    Fruit(
+                        x - 16,
+                        y - 16,
+                        tipo=datos["tipo"],
+                        color=datos["color"],
+                        puntos=datos["puntos"],
                     )
                 )
             else:
-                self.monstruos.append(
-                    Monster(
-                        m["x"],
-                        m["y"],
-                        m["ancho"],
-                        m["alto"],
-                        m["puntos"],
-                        m["velocidad"],
-                        m.get("rango_deteccion", 0),
+                frutas.append(
+                    Fruit(
+                        datos["x"],
+                        datos["y"],
+                        tipo=datos["tipo"],
+                        color=datos["color"],
+                        puntos=datos["puntos"],
                     )
                 )
-        for monster in self.monstruos:
-            monster.objetivo_wander = None
-            monster.origen_wander = (monster.rect.x, monster.rect.y)
-            monster.distancia_recorrida = 0
-            monster.max_distancia = random.randint(102, 205)
+        return frutas
+
+    def _crear_monstruos(self, nivel, disponibles):
+        """Crea los monstruos del nivel en celdas libres sin repetir."""
+        monstruos = []
+        for idx, datos in enumerate(MONSTRUOS_POR_NIVEL[nivel]):
+            if idx < len(disponibles):
+                x, y = disponibles[idx]
+                monstruos.append(
+                    Monster(
+                        x - datos["ancho"] // 2,
+                        y - datos["alto"] // 2,
+                        datos["ancho"],
+                        datos["alto"],
+                        datos["puntos"],
+                        datos["velocidad"],
+                        datos.get("rango_deteccion", 0),
+                    )
+                )
+            else:
+                monstruos.append(
+                    Monster(
+                        datos["x"],
+                        datos["y"],
+                        datos["ancho"],
+                        datos["alto"],
+                        datos["puntos"],
+                        datos["velocidad"],
+                        datos.get("rango_deteccion", 0),
+                    )
+                )
+        return monstruos
+
+    def _iniciar_monstruos(self):
+        """Activa el recorrido inicial de cada monstruo."""
+        for monstruo in self.monstruos:
+            monstruo.objetivo_wander = None
+            monstruo.origen_wander = (monstruo.rect.x, monstruo.rect.y)
+            monstruo.max_distancia = random.randint(102, 205)
             if self.maze:
-                monster._generar_objetivo_wander(self.maze)
+                monstruo._generar_objetivo_wander(self.maze)
 
+    def _configurar_salida(self, nivel):
+        """Crea la salida, abre su zona y fija el tiempo del nivel."""
         salida = SALIDAS[nivel]
-        self.salida = pygame.Rect(salida["x"], salida["y"], salida["ancho"], salida["alto"])
+        self.salida = pygame.Rect(
+            salida["x"], salida["y"], salida["ancho"], salida["alto"]
+        )
         self.maze.abrir_zona(self.salida)
         self.tiempo_nivel = NIVELES[nivel]["tiempo"]
+
+    def _reiniciar_temporizadores(self):
+        """Reinicia los efectos temporales al empezar un nivel."""
         self.frutas_recolectadas_ventana = []
         self.inmune = False
         self.tiempo_inmunidad = 0
@@ -133,6 +190,13 @@ class GameScreen:
             return 0.0
         area_dentro = interseccion.width * interseccion.height
         return area_dentro / area_jugador
+
+    def _terminar_partida(self, juego):
+        """Cierra la partida como Game Over y devuelve el próximo estado."""
+        juego.mensaje_resultado = "Game Over"
+        juego.puntaje_final = juego.puntaje
+        juego.audio.reproducir("game_over")
+        return EstadoJuego.RESULTADO
 
     def _iniciar_efecto_victoria(self):
         cx, cy = self.salida.center
@@ -175,7 +239,9 @@ class GameScreen:
             particula["vida"] -= dt
 
         efecto["particulas"] = [
-            p for p in efecto["particulas"] if p["vida"] > 0
+            particula
+            for particula in efecto["particulas"]
+            if particula["vida"] > 0
         ]
 
         if efecto["tiempo"] >= DURACION_EFECTO_VICTORIA:
@@ -186,57 +252,73 @@ class GameScreen:
         if efecto is None:
             return
 
+        capa = self._obtener_capa_efecto()
+        capa.fill((0, 0, 0, 0))
+
+        tiempo = efecto["tiempo"]
+        cx = self.salida.centerx - self.camera.x
+        cy = self.salida.centery - self.camera.y + HUD_HEIGHT
+
+        self._dibujar_destello(capa, tiempo)
+        self._dibujar_brillo_salida(capa, tiempo, cx, cy)
+        self._dibujar_ondas(capa, tiempo, cx, cy)
+        self._dibujar_particulas(capa, efecto["particulas"])
+
+        pantalla.blit(capa, (0, 0))
+
+    def _obtener_capa_efecto(self):
+        """Devuelve la superficie reutilizable del efecto de victoria."""
         if self._capa_efecto is None:
             self._capa_efecto = pygame.Surface(
                 (ANCHO_PANTALLA, ALTO_PANTALLA), pygame.SRCALPHA
             )
-        capa = self._capa_efecto
-        capa.fill((0, 0, 0, 0))
+        return self._capa_efecto
 
-        tiempo = efecto["tiempo"]
-        t = min(1.0, tiempo / DURACION_EFECTO_VICTORIA)
-        cx = self.salida.centerx - self.camera.x
-        cy = self.salida.centery - self.camera.y + HUD_HEIGHT
-
-        # Destello cálido inicial.
+    def _dibujar_destello(self, capa, tiempo):
+        """Dibuja el destello inicial del efecto."""
         alpha_destello = int(70 * max(0.0, 1.0 - tiempo / 0.35))
         if alpha_destello > 0:
             capa.fill((255, 232, 160, alpha_destello))
 
-        # Resplandor del tile de salida.
-        alpha_salida = int(120 * (1.0 - t))
-        if alpha_salida > 0:
-            pulso = int(4 + 4 * math.sin(tiempo * math.pi * 8))
-            brillo = pygame.Rect(
-                0, 0, self.salida.width, self.salida.height
-            )
-            brillo.center = (cx, cy)
-            pygame.draw.rect(
-                capa,
-                (255, 238, 170, alpha_salida),
-                brillo.inflate(10 + pulso, 10 + pulso),
-                3,
-                border_radius=10,
-            )
+    def _dibujar_brillo_salida(self, capa, tiempo, cx, cy):
+        """Dibuja el brillo pulsante alrededor de la salida."""
+        progreso = min(1.0, tiempo / DURACION_EFECTO_VICTORIA)
+        alpha_salida = int(120 * (1.0 - progreso))
+        if alpha_salida <= 0:
+            return
 
-        # Ondas doradas que se expanden.
+        pulso = int(4 + 4 * math.sin(tiempo * math.pi * 8))
+        brillo = pygame.Rect(0, 0, self.salida.width, self.salida.height)
+        brillo.center = (cx, cy)
+        pygame.draw.rect(
+            capa,
+            (255, 238, 170, alpha_salida),
+            brillo.inflate(10 + pulso, 10 + pulso),
+            3,
+            border_radius=10,
+        )
+
+    def _dibujar_ondas(self, capa, tiempo, cx, cy):
+        """Dibuja las ondas expansivas del efecto."""
         for i in range(3):
             progreso = (tiempo - i * 0.14) / 0.95
-            if 0.0 <= progreso <= 1.0:
-                radio = int(20 + 210 * progreso)
-                alpha_onda = int(170 * (1.0 - progreso))
-                color = (255, 238, 170) if i % 2 == 0 else (255, 214, 92)
-                pygame.draw.circle(
-                    capa, (*color, alpha_onda), (cx, cy), radio, 3
-                )
+            if not 0.0 <= progreso <= 1.0:
+                continue
+            radio = int(20 + 210 * progreso)
+            alpha_onda = int(170 * (1.0 - progreso))
+            color = (255, 238, 170) if i % 2 == 0 else (255, 214, 92)
+            pygame.draw.circle(
+                capa, (*color, alpha_onda), (cx, cy), radio, 3
+            )
 
-        # Chispas doradas.
-        for particula in efecto["particulas"]:
+    def _dibujar_particulas(self, capa, particulas):
+        """Dibuja las partículas del efecto de victoria."""
+        for particula in particulas:
             px = particula["x"] - self.camera.x
             py = particula["y"] - self.camera.y + HUD_HEIGHT
-            if px < -20 or px > ANCHO_PANTALLA + 20:
+            if not -20 <= px <= ANCHO_PANTALLA + 20:
                 continue
-            if py < -20 or py > ALTO_PANTALLA + 20:
+            if not -20 <= py <= ALTO_PANTALLA + 20:
                 continue
 
             proporcion_vida = max(
@@ -248,23 +330,14 @@ class GameScreen:
             )
             color = (*particula["color"], alpha)
             pygame.draw.circle(
-                capa, (255, 240, 190, max(1, alpha // 5)), (px, py), radio + 3
+                capa,
+                (255, 240, 190, max(1, alpha // 5)),
+                (px, py),
+                radio + 3,
             )
             pygame.draw.circle(capa, color, (px, py), radio)
 
-        pantalla.blit(capa, (0, 0))
-
-    def update(self, juego, dt):
-        if juego.estado != juego.estado_juego.JUEGO:
-            return
-
-        if self.efecto_victoria is not None:
-            self._actualizar_efecto_victoria(dt)
-            if self.efecto_victoria is None:
-                juego.estado = juego.estado_juego.INGRESO_NOMBRE
-                juego.audio.reproducir("final_victory")
-            return
-
+    def _actualizar_temporizadores(self, dt):
         if self.inmune:
             self.tiempo_inmunidad -= dt
             if self.tiempo_inmunidad <= 0:
@@ -275,125 +348,196 @@ class GameScreen:
             if self.tiempo_invulnerabilidad <= 0:
                 self.invulnerable = False
 
-        self.tiempo_nivel -= dt
-        if self.tiempo_nivel <= 0:
-            self.tiempo_nivel = 0
-            juego.mensaje_resultado = "Game Over"
-            juego.puntaje_final = juego.puntaje
-            juego.estado = juego.estado_juego.RESULTADO
-            juego.audio.reproducir("game_over")
-            return
-
+    def _mover_jugador(self, dt):
         keys = pygame.key.get_pressed()
-        dx, dy = 0, 0
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            dx = -VELOCIDAD_JUGADOR * dt
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            dx = VELOCIDAD_JUGADOR * dt
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            dy = -VELOCIDAD_JUGADOR * dt
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            dy = VELOCIDAD_JUGADOR * dt
+        direccion = pygame.math.Vector2(
+            int(keys[pygame.K_RIGHT] or keys[pygame.K_d])
+            - int(keys[pygame.K_LEFT] or keys[pygame.K_a]),
+            int(keys[pygame.K_DOWN] or keys[pygame.K_s])
+            - int(keys[pygame.K_UP] or keys[pygame.K_w]),
+        )
+        if direccion.length_squared() > 0:
+            direccion = direccion.normalize()
+        movimiento = direccion * VELOCIDAD_JUGADOR * dt
 
-        mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
         posicion_anterior = self.player.rect.topleft
-        self.player.mover(dx, dy, self.maze, mundo_rect)
+        self.player.mover(
+            movimiento.x, movimiento.y, self.maze, self._mundo_rect
+        )
         self.player.update(dt)
 
         if self.player.rect.topleft != posicion_anterior:
             self.tiempo_paso -= dt
             if self.tiempo_paso <= 0:
-                juego.audio.reproducir_paso()
-                self.tiempo_paso = 0.30
+                self.tiempo_paso = INTERVALO_PASO
+                return True
         else:
             self.tiempo_paso = 0.0
+        return False
 
+    def _recolectar_frutas(self, juego):
         for fruta in self.frutas:
-            if fruta.esta_activa() and self.player.get_rect().colliderect(fruta.get_rect()):
-                fruta.recolectar()
+            if fruta.activa and self.player.rect.colliderect(fruta.rect):
+                juego.puntaje += fruta.recolectar()
                 juego.audio.reproducir("collect")
-                juego.puntaje += PUNTOS_POR_FRUTA
                 ahora = pygame.time.get_ticks() / 1000.0
                 self.frutas_recolectadas_ventana.append(ahora)
-                self.frutas_recolectadas_ventana = [t for t in self.frutas_recolectadas_ventana if ahora - t <= 10]
-                if len(self.frutas_recolectadas_ventana) >= 3:
+                self.frutas_recolectadas_ventana = [
+                    instante
+                    for instante in self.frutas_recolectadas_ventana
+                    if ahora - instante <= VENTANA_INMUNIDAD
+                ]
+                if (
+                    len(self.frutas_recolectadas_ventana)
+                    >= FRUTAS_PARA_INMUNIDAD
+                ):
                     self.inmune = True
-                    self.tiempo_inmunidad = 5
+                    self.tiempo_inmunidad = DURACION_INMUNIDAD
                     self.frutas_recolectadas_ventana = []
                     juego.audio.reproducir("inmune")
 
-        mundo_rect = pygame.Rect(0, 0, self.maze.ancho, self.maze.alto)
+    def _actualizar_monstruos(self, dt):
         for monstruo in self.monstruos:
-            monstruo.update(dt, self.player.get_rect(), self.maze, mundo_rect)
+            monstruo.update(dt, self.player.rect, self.maze, self._mundo_rect)
 
-        if not self.inmune and not self.invulnerable:
-            for monstruo in self.monstruos:
-                if self.player.get_rect().colliderect(monstruo.get_rect()):
-                    juego.vidas -= 1
-                    juego.audio.reproducir("damage")
-                    self.invulnerable = True
-                    self.tiempo_invulnerabilidad = 1.0
-                    if juego.vidas <= 0:
-                        juego.mensaje_resultado = "Game Over"
-                        juego.puntaje_final = juego.puntaje
-                        juego.estado = juego.estado_juego.RESULTADO
-                        juego.audio.reproducir("game_over")
-                    break
+    def _aplicar_dano(self, juego):
+        if self.inmune or self.invulnerable:
+            return None
 
-        if self._proporcion_dentro_salida(self.player.get_rect()) >= ENTRADA_SALIDA_MINIMA:
-            if juego.nivel_actual < len(NIVELES) - 1:
-                juego.nivel_actual += 1
-                self.cargar_nivel(juego.nivel_actual, juego)
-            else:
-                bonus = (
-                    juego.vidas * PUNTOS_POR_VIDA
-                    + int(self.tiempo_nivel) * PUNTOS_POR_SEGUNDO
-                )
-                juego.puntaje_final = juego.puntaje + bonus
-                juego.mensaje_resultado = "Victoria"
-                juego.audio.reproducir("success_level")
-                self._iniciar_efecto_victoria()
+        for monstruo in self.monstruos:
+            if self.player.rect.colliderect(monstruo.rect):
+                juego.vidas = max(0, juego.vidas - 1)
+                juego.audio.reproducir("damage")
+                self.invulnerable = True
+                self.tiempo_invulnerabilidad = DURACION_INVULNERABILIDAD
+                if juego.vidas <= 0:
+                    return self._terminar_partida(juego)
+                break
+        return None
+
+    def _comprobar_salida(self, juego):
+        if (
+            self._proporcion_dentro_salida(self.player.rect)
+            < ENTRADA_SALIDA_MINIMA
+        ):
+            return
+
+        if juego.nivel_actual < len(NIVELES) - 1:
+            juego.nivel_actual += 1
+            self.cargar_nivel(juego.nivel_actual)
+            return
+
+        bonus = calcular_bonus(juego.vidas, self.tiempo_nivel)
+        juego.puntaje_final = juego.puntaje + bonus
+        juego.mensaje_resultado = "Victoria"
+        juego.audio.reproducir("success_level")
+        self._iniciar_efecto_victoria()
+
+    def update(self, juego, dt):
+        """Avanza la partida y devuelve el próximo estado, o None."""
+        if juego.estado != EstadoJuego.JUEGO:
+            return None
+
+        if self.efecto_victoria is not None:
+            self._actualizar_efecto_victoria(dt)
+            if self.efecto_victoria is not None:
+                return None
+            juego.audio.reproducir("final_victory")
+            return EstadoJuego.INGRESO_NOMBRE
+
+        self._actualizar_temporizadores(dt)
+
+        self.tiempo_nivel -= dt
+        if self.tiempo_nivel <= 0:
+            self.tiempo_nivel = 0
+            return self._terminar_partida(juego)
+
+        if self._mover_jugador(dt):
+            juego.audio.reproducir_paso()
+
+        self._recolectar_frutas(juego)
+        self._actualizar_monstruos(dt)
+
+        resultado = self._aplicar_dano(juego)
+        if resultado:
+            return resultado
+
+        return self._comprobar_salida(juego)
 
     def draw(self, juego):
-        self.camera.update(self.player.get_rect())
+        """Dibuja el laberinto, la salida, las entidades, el efecto y el HUD."""
+        self.camera.update(self.player.rect)
         pantalla = juego.pantalla
         pantalla.fill(COLOR_FONDO)
 
-        hud_height = HUD_HEIGHT
-        self.maze.dibujar(pantalla, self.camera, offset_y=hud_height)
+        self.maze.dibujar(pantalla, self.camera, offset_y=HUD_HEIGHT)
+        self._dibujar_salida(pantalla)
+        self._dibujar_frutas(pantalla)
+        self._dibujar_jugador(pantalla)
+        self._dibujar_monstruos(pantalla)
+        self._dibujar_efecto_victoria(pantalla)
+        dibujar_hud(
+            pantalla,
+            juego.vidas,
+            juego.puntaje,
+            self.tiempo_nivel,
+            juego.nivel_actual,
+            self.inmune,
+        )
 
+    def _dibujar_salida(self, pantalla):
+        """Dibuja el borde visible de la salida del nivel."""
+        salida_pantalla = self.camera.aplicar(self.salida)
+        pygame.draw.rect(
+            pantalla, COLOR_SALIDA, salida_pantalla, 4, border_radius=10
+        )
+
+    def _dibujar_frutas(self, pantalla):
+        """Dibuja las frutas activas."""
         for fruta in self.frutas:
-            if fruta.esta_activa():
-                fruta_pantalla = self.camera.aplicar(fruta.get_rect())
-                sprite = fruta.get_sprite()
-                if sprite:
-                    float_y = fruta.get_float_offset()
-                    sprite_scaled = pygame.transform.scale(sprite, (fruta_pantalla.width + 6, fruta_pantalla.height + 6))
-                    draw_pos = (fruta_pantalla.x - 3, fruta_pantalla.y - 3 + float_y)
-                    pantalla.blit(sprite_scaled, draw_pos)
-                else:
-                    pygame.draw.rect(pantalla, fruta.color, fruta_pantalla)
-
-        if not self.invulnerable or int(pygame.time.get_ticks() / 100) % 2 == 0:
-            jugador_pantalla = self.camera.aplicar(self.player.get_rect())
-            sprite = self.player.get_current_sprite()
+            if not fruta.activa:
+                continue
+            fruta_pantalla = self.camera.aplicar(fruta.rect)
+            sprite = fruta.get_sprite()
             if sprite:
-                offset_x, offset_y = self.player.get_draw_offset()
-                draw_pos = (jugador_pantalla.x - offset_x, jugador_pantalla.y - offset_y)
-                pantalla.blit(sprite, draw_pos)
+                float_y = fruta.get_float_offset()
+                pantalla.blit(
+                    sprite,
+                    (fruta_pantalla.x - 3, fruta_pantalla.y - 3 + float_y),
+                )
             else:
-                color_jugador_actual = (0, 255, 0) if self.inmune else COLOR_JUGADOR
-                pygame.draw.rect(pantalla, color_jugador_actual, jugador_pantalla)
+                pygame.draw.rect(pantalla, fruta.color, fruta_pantalla)
 
+    def _dibujar_jugador(self, pantalla):
+        """Dibuja al jugador, parpadeando mientras es invulnerable."""
+        if self.invulnerable and int(pygame.time.get_ticks() / 100) % 2 != 0:
+            return
+
+        jugador_pantalla = self.camera.aplicar(self.player.rect)
+        sprite = self.player.get_current_sprite()
+        if sprite:
+            offset_x, offset_y = self.player.get_draw_offset()
+            pantalla.blit(
+                sprite,
+                (jugador_pantalla.x - offset_x, jugador_pantalla.y - offset_y),
+            )
+        else:
+            color = (0, 255, 0) if self.inmune else COLOR_JUGADOR
+            pygame.draw.rect(pantalla, color, jugador_pantalla)
+
+    def _dibujar_monstruos(self, pantalla):
+        """Dibuja todos los monstruos del nivel."""
         for monstruo in self.monstruos:
-            monstruo_pantalla = self.camera.aplicar(monstruo.get_rect())
+            monstruo_pantalla = self.camera.aplicar(monstruo.rect)
             sprite = monstruo.get_current_sprite()
             if sprite:
                 offset_x, offset_y = monstruo.get_draw_offset()
-                draw_pos = (monstruo_pantalla.x - offset_x, monstruo_pantalla.y - offset_y)
-                pantalla.blit(sprite, draw_pos)
+                pantalla.blit(
+                    sprite,
+                    (
+                        monstruo_pantalla.x - offset_x,
+                        monstruo_pantalla.y - offset_y,
+                    ),
+                )
             else:
                 pygame.draw.rect(pantalla, COLOR_MONSTRUO, monstruo_pantalla)
-
-        self._dibujar_efecto_victoria(pantalla)
-        dibujar_hud(pantalla, juego.vidas, juego.puntaje, self.tiempo_nivel, juego.nivel_actual, self.inmune)

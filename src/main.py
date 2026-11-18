@@ -1,7 +1,17 @@
+"""Punto de entrada del juego."""
+
+import logging
+
+from src.game import Juego
+
+
 def main():
-    from src.game import Juego
-    juego = Juego()
-    juego.ejecutar()
+    """Configura el registro de eventos y arranca el juego."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s: %(message)s",
+    )
+    Juego().ejecutar()
 
 
 if __name__ == "__main__":

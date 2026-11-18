@@ -1,19 +1,42 @@
-import pygame
-from src.world.seeds import (
-    SEMILLAS,
-    FRUTAS_POR_NIVEL,
-    MONSTRUOS_POR_NIVEL,
-    SALIDAS,
-    NIVELES,
-)
+"""Constantes de configuración y rutas de assets del proyecto."""
 
+from pathlib import Path
+
+# --- Rutas ---
+BASE_DIR = Path(__file__).resolve().parent.parent
+ASSETS_DIR = BASE_DIR / "assets"
+IMAGES_DIR = ASSETS_DIR / "images"
+SOUNDS_DIR = ASSETS_DIR / "sounds"
+DATABASE_DIR = BASE_DIR / "database"
+
+# --- Pantalla ---
 ANCHO_PANTALLA, ALTO_PANTALLA = 1024, 768
-ANCHO_MUNDO, ALTO_MUNDO = 2048, 1536
-TILE_SIZE = 77
-
-VELOCIDAD_JUGADOR = 384
+FPS = 60
 HUD_HEIGHT = 102
-SCALE = 1.28
+
+# --- Mundo y jugador ---
+TILE_SIZE = 77
+VELOCIDAD_JUGADOR = 384
+VIDAS_INICIALES = 5
+DURACION_INVULNERABILIDAD = 1.0  # segundos
+
+# --- Inmunidad por frutas ---
+FRUTAS_PARA_INMUNIDAD = 3
+VENTANA_INMUNIDAD = 10  # segundos para juntar las frutas
+DURACION_INMUNIDAD = 5  # segundos de inmunidad
+
+# --- Puntajes (RF-16) ---
+PUNTOS_POR_FRUTA = 10
+BONUS_VICTORIA = 100
+BONUS_POR_VIDA = 50
+BONUS_POR_SEGUNDO = 5
+
+# --- Menú ---
+ANCHO_OPCION = 512
+ALTO_OPCION = 62
+ESPACIO_OPCIONES = 77
+Y_INICIAL_OPCIONES = ALTO_PANTALLA * 5 // 12
+RADIO_OPCION = 16
 
 COLOR_FONDO = (75, 90, 60)
 COLOR_CAMINO = (75, 90, 60)

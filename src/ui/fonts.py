@@ -1,3 +1,5 @@
+"""Inicialización centralizada de las fuentes del juego."""
+
 import pygame
 
 fuente = None
@@ -17,7 +19,9 @@ _FUENTES_SERIF = ("georgia", "palatinolinotype", "timesnewroman", "cambria")
 
 def _crear_fuente_serif(tamano, negrita=False):
     for nombre in _FUENTES_SERIF:
-        ruta = pygame.font.match_font(nombre, bold=negrita) or pygame.font.match_font(nombre)
+        ruta = pygame.font.match_font(nombre, bold=negrita) or pygame.font.match_font(
+            nombre
+        )
         if ruta:
             fuente_serif = pygame.font.Font(ruta, tamano)
             fuente_serif.set_bold(negrita)
@@ -26,6 +30,7 @@ def _crear_fuente_serif(tamano, negrita=False):
 
 
 def inicializar_fuentes():
+    """Crea todas las fuentes usadas por el juego."""
     global fuente, fuente_pequena
     global fuente_menu, fuente_titulo_pantalla, fuente_titulo_derrota
     global fuente_puntaje_final

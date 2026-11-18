@@ -1,7 +1,10 @@
+"""Utilidades de dibujo compartidas por las pantallas."""
+
 import pygame
 
 
 def render_con_borde(fuente, texto, color, color_borde=(10, 12, 8), grosor=2):
+    """Renderiza un texto con un borde circular de color."""
     relleno = fuente.render(texto, True, color)
     borde = fuente.render(texto, True, color_borde)
     ancho = relleno.get_width() + grosor * 2
@@ -26,6 +29,7 @@ def dibujar_panel(
     borde_interno=None,
     sombra=0,
 ):
+    """Dibuja un panel redondeado con borde, brillo interno y sombra opcional."""
     if sombra:
         capa_sombra = pygame.Surface(rect.size, pygame.SRCALPHA)
         pygame.draw.rect(
@@ -50,6 +54,7 @@ def dibujar_panel(
 
 
 def dibujar_separador(pantalla, centro_x, y, ancho, color):
+    """Dibuja una línea horizontal con dos puntos en los extremos."""
     pygame.draw.line(
         pantalla,
         color,

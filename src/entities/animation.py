@@ -1,15 +1,33 @@
-import pygame
+"""Carga de sprite sheets y animaciones del jugador."""
+
+import logging
 import os
+
+import pygame
+
+logger = logging.getLogger(__name__)
 
 
 class SpriteSheet:
-    def __init__(self, image_path, frame_width, frame_height, cols, rows, total_frames=None):
+    """Extrae los frames de una imagen y opcionalmente los escala al cargarlos."""
+
+    def __init__(
+        self,
+        image_path,
+        frame_width,
+        frame_height,
+        cols,
+        rows,
+        total_frames=None,
+        size=None,
+    ):
         self.image_path = image_path
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.cols = cols
         self.rows = rows
         self.total_frames = total_frames
+        self.size = size
         self.sheet = None
         self.frames = None
         self._loaded = False
@@ -30,7 +48,11 @@ class SpriteSheet:
                     break
                 x = col * self.frame_width
                 y = row * self.frame_height
-                frame = self.sheet.subsurface(pygame.Rect(x, y, self.frame_width, self.frame_height))
+                frame = self.sheet.subsurface(
+                    pygame.Rect(x, y, self.frame_width, self.frame_height)
+                )
+                if self.size:
+                    frame = pygame.transform.scale(frame, self.size)
                 frames.append(frame)
                 count += 1
             if count >= max_frames:
@@ -49,6 +71,8 @@ class SpriteSheet:
 
 
 class Animation:
+    """Recorre los frames de una animación a una velocidad fija."""
+
     def __init__(self, sprite_sheet, fps=12, loop=True):
         self.sprite_sheet = sprite_sheet
         self.fps = fps
@@ -87,14 +111,34 @@ class Animation:
 
 
 class DirectionalAnimation:
-    DIRECTIONS = [
-        'norte', 'sur', 'este', 'oeste',
-        'noreste', 'noroeste', 'sureste', 'suroeste'
-    ]
+    """Agrupa una animación por cada una de las ocho direcciones."""
 
-    def __init__(self, base_path, prefix, frame_width, frame_height, cols, rows, fps=12, loop=True, total_frames=None):
+    DIRECTIONS = (
+        "norte",
+        "sur",
+        "este",
+        "oeste",
+        "noreste",
+        "noroeste",
+        "sureste",
+        "suroeste",
+    )
+
+    def __init__(
+        self,
+        base_path,
+        prefix,
+        frame_width,
+        frame_height,
+        cols,
+        rows,
+        fps=12,
+        loop=True,
+        total_frames=None,
+        size=None,
+    ):
         self.animations = {}
-        self.current_direction = 'sur'
+        self.current_direction = "sur"
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.cols = cols
@@ -102,6 +146,7 @@ class DirectionalAnimation:
         self.fps = fps
         self.loop = loop
         self.total_frames = total_frames
+        self.size = size
         self.base_path = base_path
         self.prefix = prefix
         self._initialized = False
@@ -109,12 +154,20 @@ class DirectionalAnimation:
     def _ensure_initialized(self):
         if not self._initialized:
             for direction in self.DIRECTIONS:
-                path = os.path.join(self.base_path, f'{self.prefix}_{direction}.png')
+                path = os.path.join(self.base_path, f"{self.prefix}_{direction}.png")
                 if os.path.exists(path):
-                    sheet = SpriteSheet(path, self.frame_width, self.frame_height, self.cols, self.rows, self.total_frames)
+                    sheet = SpriteSheet(
+                        path,
+                        self.frame_width,
+                        self.frame_height,
+                        self.cols,
+                        self.rows,
+                        self.total_frames,
+                        size=self.size,
+                    )
                     self.animations[direction] = Animation(sheet, self.fps, self.loop)
                 else:
-                    print(f"Advertencia: No se encontró {path}")
+                    logger.warning("No se encontró la animación %s", path)
             self._initialized = True
 
     def set_direction(self, direction):
@@ -139,21 +192,20 @@ class DirectionalAnimation:
             return self.current_direction
 
         if dx > 0 and dy < 0:
-            return 'noreste'
-        elif dx < 0 and dy < 0:
-            return 'noroeste'
-        elif dx > 0 and dy > 0:
-            return 'sureste'
-        elif dx < 0 and dy > 0:
-            return 'suroeste'
-        elif dx > 0:
-            return 'este'
-        elif dx < 0:
-            return 'oeste'
-        elif dy < 0:
-            return 'norte'
-        else:
-            return 'sur'
+            return "noreste"
+        if dx < 0 and dy < 0:
+            return "noroeste"
+        if dx > 0 and dy > 0:
+            return "sureste"
+        if dx < 0 and dy > 0:
+            return "suroeste"
+        if dx > 0:
+            return "este"
+        if dx < 0:
+            return "oeste"
+        if dy < 0:
+            return "norte"
+        return "sur"
 
     def is_finished(self):
         self._ensure_initialized()

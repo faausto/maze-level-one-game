@@ -1,47 +1,39 @@
-import pygame
+"""Bucle principal del juego y coordinación de las pantallas."""
+
 import sys
-import random
-from src.ui import fonts
-from src.constants import (
-    ANCHO_PANTALLA,
-    ALTO_PANTALLA,
-    COLOR_FONDO,
-    COLOR_PARED,
-    COLOR_BORDE,
-    COLOR_JUGADOR,
-    COLOR_OBJETIVO,
-    COLOR_TEXTO,
-    COLOR_TITULO,
-    NIVELES,
-    SEMILLAS,
-    FRUTAS_POR_NIVEL,
-    MONSTRUOS_POR_NIVEL,
-    SALIDAS,
-)
+
+import pygame
+
 from src.audio import Audio
+from src.constants import ALTO_PANTALLA, ANCHO_PANTALLA, FPS, VIDAS_INICIALES
 from src.db.database import Database
-from src.screens.menu import MenuScreen
-from src.screens.instructions import InstructionsScreen
+from src.estados import EstadoJuego
+from src.screens.final import FinalScreen
 from src.screens.game_screen import GameScreen
-from src.screens.result import ResultScreen
+from src.screens.instructions import InstructionsScreen
+from src.screens.menu import MenuScreen
 from src.screens.name_input import NameInputScreen
 from src.screens.ranking import RankingScreen
-from src.screens.final import FinalScreen
-
-
-class EstadoJuego:
-    MENU = "menu"
-    INSTRUCCIONES = "instrucciones"
-    JUEGO = "juego"
-    RESULTADO = "resultado"
-    RANKING = "ranking"
-    RANKING_VICTORIA = "ranking_victoria"
-    FINAL = "final"
-    INGRESO_NOMBRE = "ingreso_nombre"
+from src.screens.result import ResultScreen
+from src.ui import fonts
 
 
 class Juego:
+    """Coordina el estado, las pantallas y el bucle principal."""
+
     def __init__(self):
+        self._inicializar_ventana()
+        self._inicializar_estado()
+
+        self.database = Database()
+        self.audio = Audio()
+        self.pantallas = self._crear_pantallas()
+
+        self.reiniciar_partida()
+        self._actualizar_audio()
+
+    def _inicializar_ventana(self):
+        """Inicializa pygame, la ventana y los recursos gráficos."""
         pygame.init()
         fonts.inicializar_fuentes()
         self.fullscreen = False
@@ -50,77 +42,95 @@ class Juego:
         self.pantalla = pygame.Surface((ANCHO_PANTALLA, ALTO_PANTALLA))
         self.clock = pygame.time.Clock()
 
-        self.estado_juego = EstadoJuego
+    def _inicializar_estado(self):
+        """Deja el estado de la partida en sus valores iniciales."""
         self.estado = EstadoJuego.MENU
         self.opcion_menu = 0
-        self.opciones_menu = ["Jugar", "Instrucciones", "Tabla de puntos", "Salir"]
+        self.opciones_menu = [
+            "Jugar",
+            "Instrucciones",
+            "Tabla de puntos",
+            "Salir",
+        ]
         self.texto_nombre = ""
+        self.mensaje_nombre = ""
         self.mensaje_resultado = ""
         self.puntaje_final = 0
         self.nivel_actual = 0
-        self.vidas = 5
+        self.vidas = VIDAS_INICIALES
         self.puntaje = 0
-        self.objetivo = pygame.Rect(0, 0, 51, 51)
-        self.database = Database()
-        self.audio = Audio()
 
-        self.menu_screen = MenuScreen()
-        self.instructions_screen = InstructionsScreen()
-        self.game_screen = GameScreen()
-        self.result_screen = ResultScreen()
-        self.name_input_screen = NameInputScreen()
-        self.ranking_screen = RankingScreen()
-        self.final_screen = FinalScreen()
+    def _crear_pantallas(self):
+        """Crea el mapa de estados a pantallas."""
+        return {
+            EstadoJuego.MENU: MenuScreen(),
+            EstadoJuego.INSTRUCCIONES: InstructionsScreen(),
+            EstadoJuego.JUEGO: GameScreen(),
+            EstadoJuego.RESULTADO: ResultScreen(),
+            EstadoJuego.INGRESO_NOMBRE: NameInputScreen(),
+            EstadoJuego.RANKING: RankingScreen(),
+            EstadoJuego.RANKING_VICTORIA: RankingScreen(),
+            EstadoJuego.FINAL: FinalScreen(),
+        }
 
-        self.reiniciar_partida()
+    def pantalla_actual(self):
+        """Devuelve la pantalla asociada al estado actual."""
+        return self.pantallas[self.estado]
+
+    def cambiar_estado(self, nuevo_estado):
+        """Aplica un cambio de pantalla desde un único lugar."""
+        if nuevo_estado is None or nuevo_estado == self.estado:
+            return
+
+        if nuevo_estado == EstadoJuego.JUEGO and self.estado in (
+            EstadoJuego.MENU,
+            EstadoJuego.FINAL,
+        ):
+            self.reiniciar_partida()
+
+        self.estado = nuevo_estado
+        self.opcion_menu = 0
+        self._actualizar_audio()
 
     def reiniciar_partida(self):
+        """Deja la partida en su estado inicial y limpia los datos previos."""
         self.nivel_actual = 0
-        self.vidas = 5
+        self.vidas = VIDAS_INICIALES
         self.puntaje = 0
-        self.objetivo = pygame.Rect(0, 0, 51, 51)
+        self.puntaje_final = 0
+        self.texto_nombre = ""
+        self.mensaje_nombre = ""
+        self.mensaje_resultado = ""
         self.cargar_nivel(0)
 
     def cargar_nivel(self, nivel):
+        """Carga un nivel en la pantalla de juego."""
         self.nivel_actual = nivel
-        self.game_screen.cargar_nivel(nivel, self)
+        self.pantallas[EstadoJuego.JUEGO].cargar_nivel(nivel)
 
     def cargar_ranking(self):
+        """Vuelve a leer el ranking desde la base de datos."""
         self.database.cargar_ranking()
 
     def manejar_eventos(self):
+        """Distribuye cada evento a la pantalla actual."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                self.salir()
 
             if (
                 event.type == pygame.KEYDOWN
                 and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)
-                and (event.mod & pygame.KMOD_ALT)
+                and (getattr(event, "mod", 0) & pygame.KMOD_ALT)
             ):
                 self.toggle_fullscreen()
                 continue
 
-            if self.estado == EstadoJuego.MENU:
-                self.menu_screen.handle_event(self, event)
-            elif self.estado == EstadoJuego.INSTRUCCIONES:
-                self.instructions_screen.handle_event(self, event)
-            elif self.estado == EstadoJuego.JUEGO:
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    self.estado = EstadoJuego.MENU
-            elif self.estado == EstadoJuego.RESULTADO:
-                self.result_screen.handle_event(self, event)
-            elif self.estado == EstadoJuego.INGRESO_NOMBRE:
-                self.name_input_screen.handle_event(self, event)
-            elif self.estado == EstadoJuego.RANKING:
-                self.ranking_screen.handle_event(self, event)
-            elif self.estado == EstadoJuego.RANKING_VICTORIA:
-                self.ranking_screen.handle_event(self, event)
-            elif self.estado == EstadoJuego.FINAL:
-                self.final_screen.handle_event(self, event)
+            nuevo_estado = self.pantalla_actual().handle_event(self, event)
+            self.cambiar_estado(nuevo_estado)
 
     def toggle_fullscreen(self):
+        """Alterna entre modo ventana y pantalla completa."""
         self.fullscreen = not self.fullscreen
         if self.fullscreen:
             try:
@@ -128,11 +138,16 @@ class Juego:
             except (AttributeError, IndexError):
                 info = pygame.display.Info()
                 ancho, alto = info.current_w, info.current_h
-            self.display = pygame.display.set_mode((ancho, alto), pygame.FULLSCREEN)
+            self.display = pygame.display.set_mode(
+                (ancho, alto), pygame.FULLSCREEN
+            )
         else:
-            self.display = pygame.display.set_mode((ANCHO_PANTALLA, ALTO_PANTALLA))
+            self.display = pygame.display.set_mode(
+                (ANCHO_PANTALLA, ALTO_PANTALLA)
+            )
 
     def presentar(self):
+        """Muestra la superficie del juego, escalada si está en pantalla completa."""
         if self.fullscreen:
             dw, dh = self.display.get_size()
             sw, sh = self.pantalla.get_size()
@@ -155,37 +170,27 @@ class Juego:
             self.audio.reproducir_musica("menu_sound")
 
     def actualizar(self, dt):
-        if self.estado == EstadoJuego.JUEGO:
-            self.game_screen.update(self, dt)
-        self._actualizar_audio()
+        """Actualiza la pantalla actual y aplica el estado que devuelva."""
+        pantalla = self.pantalla_actual()
+        actualizar = getattr(pantalla, "update", None)
+        if actualizar:
+            nuevo_estado = actualizar(self, dt)
+            self.cambiar_estado(nuevo_estado)
 
     def dibujar(self):
-        if self.estado == EstadoJuego.MENU:
-            self.menu_screen.draw(self)
-        elif self.estado == EstadoJuego.INSTRUCCIONES:
-            self.instructions_screen.draw(self)
-        elif self.estado == EstadoJuego.JUEGO:
-            self.game_screen.draw(self)
-        elif self.estado == EstadoJuego.RESULTADO:
-            self.result_screen.draw(self)
-        elif self.estado == EstadoJuego.INGRESO_NOMBRE:
-            self.name_input_screen.draw(self)
-        elif self.estado == EstadoJuego.RANKING:
-            self.ranking_screen.draw(self)
-        elif self.estado == EstadoJuego.RANKING_VICTORIA:
-            self.ranking_screen.draw(self)
-        elif self.estado == EstadoJuego.FINAL:
-            self.final_screen.draw(self)
+        """Dibuja la pantalla actual."""
+        self.pantalla_actual().draw(self)
 
     def ejecutar(self):
+        """Ejecuta el bucle principal hasta que el jugador salga."""
         while True:
-            dt = self.clock.tick(60) / 1000.0
+            dt = self.clock.tick(FPS) / 1000.0
             self.manejar_eventos()
             self.actualizar(dt)
             self.dibujar()
             self.presentar()
 
-
-if __name__ == "__main__":
-    juego = Juego()
-    juego.ejecutar()
+    def salir(self):
+        """Cierra pygame y termina el proceso."""
+        pygame.quit()
+        sys.exit()

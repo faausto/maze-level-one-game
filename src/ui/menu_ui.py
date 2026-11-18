@@ -1,13 +1,17 @@
+"""Dibujo compartido de las opciones de menú."""
+
 import pygame
-from src.constants import ANCHO_PANTALLA
+
+from src.constants import (
+    ALTO_OPCION,
+    ANCHO_OPCION,
+    ANCHO_PANTALLA,
+    ESPACIO_OPCIONES,
+    RADIO_OPCION,
+    Y_INICIAL_OPCIONES,
+)
 from src.ui import fonts
 from src.ui.common import dibujar_panel, render_con_borde
-
-ANCHO_OPCION = 512
-ALTO_OPCION = 62
-ESPACIO_OPCIONES = 77
-Y_INICIAL_OPCIONES = 320
-RADIO_OPCION = 16
 
 COLOR_TEXTO_BORDE = (12, 16, 10)
 COLOR_TEXTO_NORMAL = (240, 240, 228)
@@ -61,6 +65,7 @@ def _dibujar_panel_seleccion(pantalla, rect):
 
 
 def dibujar_opciones_menu(pantalla, opciones, opcion_seleccionada):
+    """Dibuja las opciones y resalta la elegida con un panel alineado al texto."""
     textos = [
         _texto_opcion(opcion, i == opcion_seleccionada)
         for i, opcion in enumerate(opciones)

@@ -1,29 +1,47 @@
+"""Pantalla de instrucciones del juego."""
+
 import pygame
+
 from src.constants import (
     ANCHO_PANTALLA,
     COLOR_DORADO,
     COLOR_DORADO_CLARO,
     COLOR_PANEL_OSCURO,
     COLOR_TEXTO,
+    VIDAS_INICIALES,
 )
+from src.estados import EstadoJuego
 from src.ui import fonts
 from src.ui.background import dibujar_fondo_general
 from src.ui.common import dibujar_panel, dibujar_separador, render_con_borde
 
 
 class InstructionsScreen:
+    """Muestra los controles y las reglas básicas del juego."""
+
     def handle_event(self, game, event):
+        """Vuelve al menú al presionar ESC."""
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            game.estado = game.estado_juego.MENU
+            return EstadoJuego.MENU
+        return None
 
     def draw(self, game):
+        """Dibuja la lista de instrucciones."""
         pantalla = game.pantalla
         dibujar_fondo_general(pantalla, oscurecer=85)
 
+        self._dibujar_titulo(pantalla)
+        self._dibujar_panel(pantalla)
+        self._dibujar_lineas(pantalla)
+
+    def _dibujar_titulo(self, pantalla):
+        """Dibuja el título y su separador."""
         titulo = render_con_borde(
             fonts.fuente_titulo_pantalla, "Instrucciones", COLOR_DORADO
         )
-        pantalla.blit(titulo, (ANCHO_PANTALLA // 2 - titulo.get_width() // 2, 58))
+        pantalla.blit(
+            titulo, (ANCHO_PANTALLA // 2 - titulo.get_width() // 2, 58)
+        )
         dibujar_separador(
             pantalla,
             ANCHO_PANTALLA // 2,
@@ -32,6 +50,8 @@ class InstructionsScreen:
             COLOR_DORADO,
         )
 
+    def _dibujar_panel(self, pantalla):
+        """Dibuja el panel que contiene las instrucciones."""
         panel = pygame.Rect(150, 188, 724, 510)
         dibujar_panel(
             pantalla,
@@ -43,12 +63,14 @@ class InstructionsScreen:
             COLOR_DORADO_CLARO,
         )
 
+    def _dibujar_lineas(self, pantalla):
+        """Dibuja cada línea de instrucciones."""
         instrucciones = [
             "Controles: W A S D o flechas",
             "Objetivo: encuentra la salida del laberinto",
             "Recolecta frutas para sumar puntos",
             "Evita los monstruos",
-            "Tienes 5 vidas por partida",
+            f"Tienes {VIDAS_INICIALES} vidas por partida",
             "Completa los niveles antes del tiempo",
             "Pantalla completa o ventana: Alt + Enter",
             "",
