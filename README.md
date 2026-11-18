@@ -89,7 +89,7 @@ El nivel 2 está pensado para que la dificultad no dependa de correr por los bor
 - [x] Sonidos en menús (navegar, confirmar)
 
 **ANEXOS**
-- [ ] Funcionamiento 100% local, sin conexión a Internet.
+- [x] Funcionamiento 100% local, sin conexión a Internet.
 
 ## Cómo ejecutar el juego
 
