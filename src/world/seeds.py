@@ -200,32 +200,57 @@ SEMILLAS_NIVEL_2 = [
 
 SEMILLAS = [SEMILLAS_NIVEL_1, SEMILLAS_NIVEL_2]
 
+# Tipos de fruta del nivel 1. Todas valen lo mismo (RF-08/RF-09): variedad visual.
+# Los sprites se cargan por tipo desde assets/images/fruits/ (32x32).
+TIPOS_FRUTA = {
+    "manzana": {"color": (255, 50, 50), "puntos": PUNTOS_POR_FRUTA},
+    "banana": {"color": (255, 220, 50), "puntos": PUNTOS_POR_FRUTA},
+    "naranja": {"color": (255, 150, 40), "puntos": PUNTOS_POR_FRUTA},
+    "uva": {"color": (160, 50, 255), "puntos": PUNTOS_POR_FRUTA},
+    "pera": {"color": (160, 220, 70), "puntos": PUNTOS_POR_FRUTA},
+    "frutilla": {"color": (255, 80, 110), "puntos": PUNTOS_POR_FRUTA},
+}
+
 FRUTAS_NIVEL_1 = [
-    {"tipo": "manzana", "color": (255, 50, 50), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "banana", "color": (255, 220, 50), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "uva", "color": (160, 50, 255), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "naranja", "color": (255, 150, 40), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "pera", "color": (160, 220, 70), "puntos": PUNTOS_POR_FRUTA},
+    {"tipo": "manzana", **TIPOS_FRUTA["manzana"]},
+    {"tipo": "manzana", **TIPOS_FRUTA["manzana"]},
+    {"tipo": "banana", **TIPOS_FRUTA["banana"]},
+    {"tipo": "banana", **TIPOS_FRUTA["banana"]},
+    {"tipo": "naranja", **TIPOS_FRUTA["naranja"]},
+    {"tipo": "uva", **TIPOS_FRUTA["uva"]},
+    {"tipo": "pera", **TIPOS_FRUTA["pera"]},
+    {"tipo": "frutilla", **TIPOS_FRUTA["frutilla"]},
 ]
 
+# Nivel 2 usa los mismos tipos de fruta que el nivel 1, con la misma cantidad que antes.
 FRUTAS_NIVEL_2 = [
-    {"tipo": "manzana", "color": (255, 50, 50), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "banana", "color": (255, 220, 50), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "uva", "color": (160, 50, 255), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "naranja", "color": (255, 150, 40), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "pera", "color": (160, 220, 70), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "frutilla", "color": (255, 80, 110), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "melon", "color": (170, 235, 120), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "durazno", "color": (255, 175, 120), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "cereza", "color": (220, 40, 70), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "pina", "color": (255, 205, 60), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "limon", "color": (235, 240, 90), "puntos": PUNTOS_POR_FRUTA},
-    {"tipo": "mandarina", "color": (255, 135, 30), "puntos": PUNTOS_POR_FRUTA},
+    {"tipo": "manzana", **TIPOS_FRUTA["manzana"]},
+    {"tipo": "manzana", **TIPOS_FRUTA["manzana"]},
+    {"tipo": "banana", **TIPOS_FRUTA["banana"]},
+    {"tipo": "banana", **TIPOS_FRUTA["banana"]},
+    {"tipo": "naranja", **TIPOS_FRUTA["naranja"]},
+    {"tipo": "naranja", **TIPOS_FRUTA["naranja"]},
+    {"tipo": "uva", **TIPOS_FRUTA["uva"]},
+    {"tipo": "uva", **TIPOS_FRUTA["uva"]},
+    {"tipo": "pera", **TIPOS_FRUTA["pera"]},
+    {"tipo": "pera", **TIPOS_FRUTA["pera"]},
+    {"tipo": "frutilla", **TIPOS_FRUTA["frutilla"]},
+    {"tipo": "frutilla", **TIPOS_FRUTA["frutilla"]},
 ]
 
 FRUTAS_POR_NIVEL = [FRUTAS_NIVEL_1, FRUTAS_NIVEL_2]
 
 MONSTRUOS_NIVEL_1 = [
+    {
+        "ancho": 51,
+        "alto": 51,
+        "velocidad": VELOCIDAD_MONSTRUO_NIVEL_1,
+    },
+    {
+        "ancho": 51,
+        "alto": 51,
+        "velocidad": VELOCIDAD_MONSTRUO_NIVEL_1,
+    },
     {
         "ancho": 51,
         "alto": 51,
@@ -269,6 +294,6 @@ MONSTRUOS_NIVEL_2 = [
 MONSTRUOS_POR_NIVEL = [MONSTRUOS_NIVEL_1, MONSTRUOS_NIVEL_2]
 
 NIVELES = [
-    {"tiempo": 35},
+    {"tiempo": 60},
     {"tiempo": 75},
 ]

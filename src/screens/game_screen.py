@@ -123,6 +123,7 @@ class GameScreen:
                 tipo=datos["tipo"],
                 color=datos["color"],
                 puntos=datos["puntos"],
+                sprite=datos.get("sprite"),
             )
             for datos, (x, y) in zip(
                 FRUTAS_POR_NIVEL[nivel], posiciones
@@ -497,7 +498,7 @@ class GameScreen:
                 float_y = fruta.get_float_offset()
                 pantalla.blit(
                     sprite,
-                    (fruta_pantalla.x - 3, fruta_pantalla.y - 3 + float_y),
+                    (fruta_pantalla.x, fruta_pantalla.y + float_y),
                 )
             else:
                 pygame.draw.rect(pantalla, fruta.color, fruta_pantalla)
