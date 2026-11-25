@@ -6,7 +6,7 @@ Videojuego 2D de laberinto desarrollado en Python con Pygame, donde una pequeña
 
 El jugador controla a un personaje dentro de un laberinto de mayor tamaño que la pantalla, recorrido con ayuda de una cámara que lo sigue en todo momento. El objetivo es alcanzar la salida de cada nivel y, finalmente, completar todos los niveles disponibles para ganar la partida. Durante el recorrido se pueden recolectar frutas de distintos tipos, que suman puntos y pueden otorgar un bonus temporal de inmunidad frente a los monstruos. El puntaje final solo se registra en el ranking cuando el jugador logra la Victoria completando todos los niveles.
 
-El juego tiene **dos niveles**: el primero de 20×13 celdas, pensado como introducción, y el segundo de 40×26 (el doble por lado), con mayor dificultad. El nivel 1 elige al azar entre 3 semillas y el nivel 2 entre 5 semillas propias. El nivel 1 tiene 5 frutas y 1 monstruo; el nivel 2 sube a 12 frutas y 5 monstruos que patrullan y persiguen al jugador cuando se acerca a 4 bloques, además de su propia música de fondo. En ambos niveles las frutas y los monstruos se ubican al azar, sin repetir celdas y lejos del spawn.
+El juego tiene **dos niveles**: el primero de 20×13 celdas, pensado como introducción, y el segundo de 40×26 (el doble por lado), con mayor dificultad. El nivel 1 elige al azar entre 3 semillas y el nivel 2 entre 5 semillas propias. El nivel 1 tiene 8 frutas y 3 monstruos; el nivel 2 sube a 12 frutas y 5 monstruos que patrullan y persiguen al jugador cuando se acerca a 4 bloques, además de su propia música de fondo. En ambos niveles las frutas y los monstruos se ubican al azar, sin repetir celdas y lejos del spawn.
 
 ## Cómo se juega
 
@@ -14,7 +14,7 @@ El juego tiene **dos niveles**: el primero de 20×13 celdas, pensado como introd
 - **Pantalla completa:** `Alt + Enter` alterna entre modo ventana (1024x768) y pantalla completa.
 - **Objetivo:** recolectar frutas y llegar a la salida. Al salir del nivel 1 se pasa directo al nivel 2; la Victoria es recién al completar el nivel 2.
 - **Vidas:** el personaje comienza con 5 vidas; se pierde una al ser tocado por un monstruo (salvo inmunidad o invulnerabilidad temporal).
-- **Tiempo:** cada nivel tiene un límite en cuenta regresiva (35 s el primero y 75 s el segundo); si se agota, la partida termina en Game Over. Los segundos que sobren del nivel 1 se suman al tiempo inicial del nivel 2, y los que queden al final se usan para el bonus.
+- **Tiempo:** cada nivel tiene un límite en cuenta regresiva (60 s el primero y 75 s el segundo); si se agota, la partida termina en Game Over. Los segundos que sobren del nivel 1 se suman al tiempo inicial del nivel 2, y los que queden al final se usan para el bonus.
 - **Fin de partida:** Victoria al completar todos los niveles, o Game Over al perder las 5 vidas o al agotarse el tiempo.
 
 ## Nivel 2: más dificultad
@@ -89,13 +89,13 @@ El nivel 2 está pensado para que la dificultad no dependa de correr por los bor
 - [x] Sonidos en menús (navegar, confirmar)
 
 **ANEXOS**
-- [x] Funcionamiento 100% local, sin conexión a Internet.
+- [ ] Funcionamiento 100% local, sin conexión a Internet.
 
 ## Cómo ejecutar el juego
 
 ### Desde el ejecutable (recomendado, sin instalar nada)
 
-- [Descargar `MazeLevelOneGame.exe` (v1.0.0)](https://github.com/faausto/maze-level-one-game/releases/download/v1.0.0/MazeLevelOneGame.exe)
+- [Descargar `MazeLevelOneGame.exe` (v1.1.0)](https://github.com/faausto/maze-level-one-game/releases/download/v1.1.0/MazeLevelOneGame.exe)
 - [Ver todas las versiones](https://github.com/faausto/maze-level-one-game/releases)
 
 Es un único archivo para **Windows 10/11 de 64 bits**: incluye Python, Pygame, imágenes y sonidos. No hace falta clonar el repo, instalar Python ni descomprimir nada; guardalo donde quieras y hacé doble clic.
