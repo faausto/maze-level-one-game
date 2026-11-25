@@ -123,7 +123,6 @@ class GameScreen:
                 tipo=datos["tipo"],
                 color=datos["color"],
                 puntos=datos["puntos"],
-                sprite=datos.get("sprite"),
             )
             for datos, (x, y) in zip(
                 FRUTAS_POR_NIVEL[nivel], posiciones

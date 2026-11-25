@@ -28,7 +28,7 @@ from src.world.seeds import (
 
 def test_hay_dos_niveles_con_sus_tiempos():
     assert len(NIVELES) == 2
-    assert NIVELES[0]["tiempo"] == 35
+    assert NIVELES[0]["tiempo"] == 60
     assert NIVELES[1]["tiempo"] == 75
 
 

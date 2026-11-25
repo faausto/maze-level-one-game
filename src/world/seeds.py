@@ -200,7 +200,7 @@ SEMILLAS_NIVEL_2 = [
 
 SEMILLAS = [SEMILLAS_NIVEL_1, SEMILLAS_NIVEL_2]
 
-# Tipos de fruta del nivel 1. Todas valen lo mismo (RF-08/RF-09): variedad visual.
+# Tipos de fruta del nivel 1. Todas valen lo mismo (RF-07): variedad visual.
 # Los sprites se cargan por tipo desde assets/images/fruits/ (32x32).
 TIPOS_FRUTA = {
     "manzana": {"color": (255, 50, 50), "puntos": PUNTOS_POR_FRUTA},

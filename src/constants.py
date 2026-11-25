@@ -45,7 +45,8 @@ DISTANCIA_MINIMA_SPAWN = 4 * TILE_SIZE  # frutas y monstruos lejos del spawn
 PUNTOS_PATRULLA = 3  # puntos de patrulla además del spawn
 RADIO_PATRULLA = 6  # celdas de distancia máxima para elegir la patrulla
 
-# --- Inmunidad por frutas ---
+# --- Frutas e inmunidad ---
+TAMANIO_FRUTA = 32
 FRUTAS_PARA_INMUNIDAD = 3
 VENTANA_INMUNIDAD = 10  # segundos para juntar las frutas
 DURACION_INMUNIDAD = 5  # segundos de inmunidad

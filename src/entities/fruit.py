@@ -2,10 +2,11 @@
 
 import logging
 import random
+from typing import ClassVar
 
 import pygame
 
-from src.constants import IMAGES_DIR
+from src.constants import IMAGES_DIR, TAMANIO_FRUTA
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +30,18 @@ SPRITES_POR_TIPO = {
 class Fruit:
     """Fruta que otorga puntos al recolectarla."""
 
-    _sprites = {}
-    _cargados = set()
+    _sprites: ClassVar[dict] = {}
+    _cargados: ClassVar[set] = set()
 
     def __init__(
         self,
         x,
         y,
-        ancho=32,
-        alto=32,
+        ancho=TAMANIO_FRUTA,
+        alto=TAMANIO_FRUTA,
         tipo="",
         color=(255, 140, 0),
         puntos=10,
-        sprite=None,
     ):
         self.rect = pygame.Rect(x, y, ancho, alto)
         self.tipo = tipo
@@ -50,8 +50,6 @@ class Fruit:
         self.activa = True
         self.start_time = pygame.time.get_ticks()
         self.float_offset = random.uniform(0, 6.28)
-        # `sprite` se acepta por compatibilidad; el sprite real se resuelve por tipo.
-        self.sprite_nombre = sprite
 
         self._cargar_sprite_tipo(tipo)
 
@@ -81,11 +79,11 @@ class Fruit:
 
     @staticmethod
     def _ancho():
-        return 32
+        return TAMANIO_FRUTA
 
     @staticmethod
     def _alto():
-        return 32
+        return TAMANIO_FRUTA
 
     def recolectar(self):
         """Marca la fruta como recolectada y devuelve sus puntos."""
